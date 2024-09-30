@@ -1,18 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Orleans.Indexing
 {
     /// <summary>
     /// This class is a wrapper around another IMemberUpdate which reverses its operation
     /// </summary>
     [Serializable]
+    [GenerateSerializer]
+    [Alias("Orleans.Indexing.MemberUpdateReverseTentative")]
     internal class MemberUpdateReverseTentative : IMemberUpdate
     {
+        [Id(0)]
         private IMemberUpdate _update;
 
-        public IndexUpdateMode UpdateMode => _update.UpdateMode;
+        public IndexUpdateMode UpdateMode => this._update.UpdateMode;
 
         public MemberUpdateReverseTentative(IMemberUpdate update) => this._update = update;
 

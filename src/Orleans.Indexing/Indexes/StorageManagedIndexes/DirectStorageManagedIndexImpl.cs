@@ -1,13 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans.Concurrency;
 using Orleans.Runtime;
+using Orleans.Serialization.TypeSystem;
 using Orleans.Storage;
 using Orleans.Transactions;
-using Orleans.Utilities;
 
 namespace Orleans.Indexing
 {
@@ -47,21 +43,21 @@ namespace Orleans.Indexing
         private string _indexedField;
 
         // IndexManager (and therefore logger) cannot be set in ctor because Grain activation has not yet set base.Runtime.
-        internal SiloIndexManager SiloIndexManager => IndexManager.GetSiloIndexManager(ref __indexManager, base.ServiceProvider);
+        internal SiloIndexManager SiloIndexManager => IndexManager.GetSiloIndexManager(ref this.__indexManager, this.ServiceProvider);
         private SiloIndexManager __indexManager;
 
-        private ILogger Logger => __logger ?? (__logger = this.SiloIndexManager.LoggerFactory.CreateLoggerWithFullCategoryName<DirectStorageManagedIndexImpl<K, V>>());
+        private ILogger Logger => this.__logger ??= this.SiloIndexManager.LoggerFactory.CreateLoggerWithFullCategoryName<DirectStorageManagedIndexImpl<K, V>>();
         private ILogger __logger;
 
         private readonly bool isTransactional;
 
         private protected DMSIGrain(bool isTransactional) => this.isTransactional = isTransactional;
 
-        public override Task OnActivateAsync()
+        public override Task OnActivateAsync(CancellationToken cancellationToken)
         {
             var indexName = IndexUtils.GetIndexNameFromIndexGrain(this);
-            _indexedField = indexName.Substring(2);
-            return base.OnActivateAsync();
+            this._indexedField = indexName.Substring(2);
+            return base.OnActivateAsync(cancellationToken);
         }
 
         public Task<bool> DirectApplyIndexUpdateBatch(Immutable<IDictionary<IIndexableGrain, IList<IMemberUpdate>>> iUpdates,
@@ -74,19 +70,19 @@ namespace Orleans.Indexing
 
         public async Task LookupAsync(IOrleansQueryResultStream<V> result, K key)
         {
-            var res = await LookupGrainReferences(key);
+            var res = await this.LookupGrainReferences(key);
             await result.OnNextAsync(res.ToBatch());
             await result.OnCompletedAsync();
         }
 
         private async Task<List<V>> LookupGrainReferences(K key)
         {
-            EnsureGrainStorage();
+            this.EnsureGrainStorage();
 
             // Dynamically find its LookupAsync method (currently only CosmosDB supports this).
             // TODO: define IOrleansIndexingStorageProvider (IOISP) for both this and the StateFieldsToIndex equivalent;
             // see https://github.com/dotnet/orleans/issues/5432.
-            dynamic indexableStorageProvider = _grainStorage;
+            dynamic indexableStorageProvider = this._grainStorage;
 
             // TODO: If the storage provider does not implement ITransactionalStorageProvider (ITSP), then the transaction facet
             // will wrap it with TransactionalStateStorageProviderWrapper (TSSPW); this will add another level to the path to the
@@ -95,8 +91,8 @@ namespace Orleans.Indexing
             //   Modify this once CosmosDB supports ITSP, and perhaps include an IOISP.SupportsTransactions property.
             //   Keep this consistent with this.EnsureGrainStorage and BaseIndexingFixture.GetDSMIFieldsForASingleGrainType.
             var qualifiedField = (this.isTransactional ? $"{nameof(TransactionalStateRecord<object>.CommittedState)}." : "")
-                                + IndexingConstants.UserStatePrefix + _indexedField;
-            List<GrainReference> resultReferences = await indexableStorageProvider.LookupAsync<K>(_grainClassName, qualifiedField, key);
+                                + IndexingConstants.UserStatePrefix + this._indexedField;
+            List<GrainReference> resultReferences = await indexableStorageProvider.LookupAsync<K>(this._grainClassName, qualifiedField, key);
             return resultReferences.Select(grain => grain.Cast<V>()).ToList();
         }
 
@@ -107,7 +103,7 @@ namespace Orleans.Indexing
             Task<V> tsk = taskCompletionSource.Task;
             Action<V> responseHandler = taskCompletionSource.SetResult;
             await result.SubscribeAsync(new QueryFirstResultStreamObserver<V>(responseHandler));
-            await LookupAsync(result, key);
+            await this.LookupAsync(result, key);
             return await tsk;
         }
 
@@ -123,7 +119,7 @@ namespace Orleans.Indexing
 
         private void EnsureGrainStorage()
         {
-            if (_grainStorage == null)
+            if (this._grainStorage == null)
             {
                 var grainClassTypes = this.SiloIndexManager.IndexRegistry.GetImplementingGrainClasses(typeof(V));
                 if (grainClassTypes.Length == 0)
@@ -137,14 +133,14 @@ namespace Orleans.Indexing
                 var grainClassType = grainClassTypes[0];
                 this._grainClassName = IndexUtils.GetFullTypeName(grainClassType);
 
-                _grainStorage = grainClassType.GetGrainStorage(this.SiloIndexManager.ServiceProvider);
+                this._grainStorage = GrainStorageHelpers.GetGrainStorage(grainClassType, this.SiloIndexManager.ServiceProvider);
                 if (this.isTransactional)
                 {
                     // TODO: This is also part of the TransactionalStateStorageProviderWrapper workaround; this is the name
                     // it passes to the StateStorageBridge, which ends up as the GrainType field in CosmosDB. Because there
                     // is currently no way to communicate the state name between the wrapper and here, the stateName passed
                     // to the TransactionalIndexAttribute facet for DMSI grains MUST BE IndexingConstants.IndexedGrainStateName.
-                    _grainClassName = $"{RuntimeTypeNameFormatter.Format(grainClassType)}-{IndexingConstants.IndexedGrainStateName}";
+                    this._grainClassName = $"{RuntimeTypeNameFormatter.Format(grainClassType)}-{IndexingConstants.IndexedGrainStateName}";
                 }
             }
         }

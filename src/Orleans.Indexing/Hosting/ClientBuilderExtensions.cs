@@ -1,7 +1,5 @@
-using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Orleans.Configuration;
 using Orleans.Hosting;
 
 namespace Orleans.Indexing
@@ -20,10 +18,8 @@ namespace Orleans.Indexing
         public static IClientBuilder UseIndexing(this IClientBuilder builder, Action<OptionsBuilder<IndexingOptions>> configureAction = null)
         {
             return builder
-                .ConfigureDefaults()
-                .AddSimpleMessageStreamProvider(IndexingConstants.INDEXING_STREAM_PROVIDER_NAME)
-                .ConfigureServices(services => services.UseIndexing(configureAction))
-                .ConfigureApplicationParts(parts => parts.AddFrameworkPart(typeof(SiloBuilderExtensions).Assembly));
+                .AddMemoryStreams(IndexingConstants.INDEXING_STREAM_PROVIDER_NAME)
+                .ConfigureServices(services => services.UseIndexing(configureAction));
         }
 
         /// <summary>

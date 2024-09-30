@@ -1,0 +1,43 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <xUnitVersion>2.9.2</xUnitVersion>
+    <xUnitVersion Condition=" '$(TargetFramework)' == 'netcoreapp3.1' or '$(TargetFramework)' == 'netstandard2.1' ">2.4.2</xUnitVersion>
+    <xUnitRunnerVersion>2.8.2</xUnitRunnerVersion>
+    <xUnitRunnerVersion Condition=" '$(TargetFramework)' == 'netcoreapp3.1' or '$(TargetFramework)' == 'netstandard2.1' ">2.4.5</xUnitRunnerVersion>
+    <MicrosoftTestSdkVersion>17.11.1</MicrosoftTestSdkVersion>
+    <OrleansVersion>8.2.0</OrleansVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- System packages -->
+    <PackageVersion Include="Microsoft.Orleans.Client" Version="8.2.0" />
+    <PackageVersion Include="Microsoft.Orleans.Runtime.Abstractions" Version="3.7.2" />
+    <PackageVersion Include="System.Text.Json" Version="8.0.4" />
+    <!-- Orleans packages -->
+    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="$(OrleansVersion)" />
+    <PackageVersion Include="Microsoft.Orleans.CodeGenerator" Version="$(OrleansVersion)" />
+    <PackageVersion Include="Microsoft.Orleans.Hosting" Version="$(OrleansVersion)" />
+    <PackageVersion Include="Microsoft.Orleans.Streaming" Version="$(OrleansVersion)" />
+    <PackageVersion Include="Microsoft.Orleans.Storage" Version="$(OrleansVersion)" />
+    <PackageVersion Include="Microsoft.Orleans.Serialization" Version="$(OrleansVersion)" />
+    <PackageVersion Include="Microsoft.Orleans.TestingHost" Version="$(OrleansVersion)" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.Memory" Version="$(OrleansVersion)" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.Cosmos" Version="$(OrleansVersion)" />
+    <PackageVersion Include="Microsoft.Orleans.Transactions" Version="$(OrleansVersion)" />
+    <PackageVersion Include="Microsoft.Orleans.Runtime" Version="$(OrleansVersion)" />
+    <!-- Microsoft packages -->
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    <!-- Test related packages -->
+    <PackageVersion Include="FluentAssertions" Version="6.12.1" />
+    <PackageVersion Include="Xunit.SkippableFact" Version="1.4.13" />
+    <PackageVersion Include="xunit" Version="$(xUnitVersion)" />
+    <PackageVersion Include="xunit.core" Version="$(xUnitVersion)" />
+    <PackageVersion Include="xunit.assert" Version="$(xUnitVersion)" />
+    <PackageVersion Include="xunit.extensibility.core" Version="$(xUnitVersion)" />
+    <PackageVersion Include="xunit.extensibility.execution" Version="$(xUnitVersion)" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="$(xUnitRunnerVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftTestSdkVersion)" />
+  </ItemGroup>
+</Project>

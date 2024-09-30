@@ -113,7 +113,7 @@ namespace Orleans.Indexing.Tests
         [Fact, TestCategory("BVT"), TestCategory("Indexing")]
         public async Task Test_Update_20Grains_FT_TI_EG_PK()
         {
-            await update_20Grains_FT_TI_EG_zz<IPlayerChain_FT_TI_EG_PK, PlayerChainProperties_FT_TI_EG_PK>();
+            await this.update_20Grains_FT_TI_EG_zz<IPlayerChain_FT_TI_EG_PK, PlayerChainProperties_FT_TI_EG_PK>();
         }
 
         /// <summary>
@@ -122,7 +122,7 @@ namespace Orleans.Indexing.Tests
         [Fact, TestCategory("BVT"), TestCategory("Indexing")]
         public async Task Test_Update_20Grains_FT_TI_EG_SB()
         {
-            await update_20Grains_FT_TI_EG_zz<IPlayerChain_FT_TI_EG_SB, PlayerChainProperties_FT_TI_EG_SB>();
+            await this.update_20Grains_FT_TI_EG_zz<IPlayerChain_FT_TI_EG_SB, PlayerChainProperties_FT_TI_EG_SB>();
         }
 
         private async Task update_20Grains_FT_TI_EG_zz<TIGrain, TProperties>() where TIGrain : IGrainWithIntegerKey, IPlayerGrain, IIndexableGrain
@@ -158,7 +158,7 @@ namespace Orleans.Indexing.Tests
         [Fact, TestCategory("BVT"), TestCategory("Indexing"), TestCategory("TransactionalIndexing")]
         public async Task Test_Update_20Grains_TXN_TI_EG_PK()
         {
-            await update_20Grains_TXN_TI_EG_zz<IPlayerChain_TXN_TI_EG_PK, PlayerChainProperties_TXN_TI_EG_SB>();
+            await this.update_20Grains_TXN_TI_EG_zz<IPlayerChain_TXN_TI_EG_PK, PlayerChainProperties_TXN_TI_EG_SB>();
         }
 
         /// <summary>
@@ -167,7 +167,7 @@ namespace Orleans.Indexing.Tests
         [Fact, TestCategory("BVT"), TestCategory("Indexing"), TestCategory("TransactionalIndexing")]
         public async Task Test_Update_20Grains_TXN_TI_EG_SB()
         {
-            await update_20Grains_TXN_TI_EG_zz<IPlayerChain_TXN_TI_EG_SB, PlayerChainProperties_TXN_TI_EG_SB>();
+            await this.update_20Grains_TXN_TI_EG_zz<IPlayerChain_TXN_TI_EG_SB, PlayerChainProperties_TXN_TI_EG_SB>();
         }
 
         private async Task update_20Grains_TXN_TI_EG_zz<TIGrain, TProperties>() where TIGrain : IGrainWithIntegerKey, IPlayerGrainTransactional, IIndexableGrain

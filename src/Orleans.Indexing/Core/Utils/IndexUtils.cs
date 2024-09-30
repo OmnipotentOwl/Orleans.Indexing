@@ -1,14 +1,10 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Orleans.Runtime;
 using Orleans.Indexing.Facet;
 using Microsoft.Extensions.DependencyInjection;
 using Orleans.Storage;
-using System.Threading.Tasks;
 
 namespace Orleans.Indexing
 {
@@ -58,6 +54,9 @@ namespace Orleans.Indexing
 
         public static IEnumerable<Type> GetConcreteGrainClasses(this Assembly assembly)
             => assembly.GetTypes().Where(t => typeof(Grain).IsAssignableFrom(t) && !t.IsAbstract);
+
+        public static IEnumerable<Type> GetConcreteGrainClasses(this IEnumerable<Type> types)
+            => types.Where(t => typeof(Grain).IsAssignableFrom(t) && !t.IsAbstract);
 
         /// <summary>
         /// This method is a central place for finding the indexes defined on a getter method of a given
@@ -236,7 +235,7 @@ namespace Orleans.Indexing
         internal static IGrainStorage GetGrainStorage(IServiceProvider services, string storageName)
         {
             var storageProvider = !string.IsNullOrEmpty(storageName)
-                ? services.GetServiceByName<IGrainStorage>(storageName)
+                ? services.GetKeyedService<IGrainStorage>(storageName)
                 : services.GetService<IGrainStorage>();
             string failedProviderName() => string.IsNullOrEmpty(storageName) ? "default storage provider" : $"storage provider with the name {storageName}";
             return storageProvider ?? throw new IndexConfigurationException($"No {failedProviderName()} was found while attempting to create index state storage.");

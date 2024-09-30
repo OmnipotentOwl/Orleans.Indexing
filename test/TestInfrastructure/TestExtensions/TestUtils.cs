@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Net;
 using System.Threading;
@@ -120,20 +120,14 @@ namespace Tester
 
     public static class RequestContextTestUtils
     {
-        public static void SetActivityId(Guid id)
-        {
-            RequestContext.ActivityId = id;
-        }
+        public static void SetActivityId(Guid id) => RequestContext.Set("ActivityId", id);
 
-        public static Guid GetActivityId()
-        {
-            return RequestContext.ActivityId;
-        }
+        public static Guid GetActivityId() => (Guid)RequestContext.Get("ActivityId");
 
         public static void ClearActivityId()
         {
             Trace.CorrelationManager.ActivityId = Guid.Empty;
-            RequestContext.ActivityId = Guid.Empty;
+            RequestContext.Remove("ActivityId");
         }
     }
 }

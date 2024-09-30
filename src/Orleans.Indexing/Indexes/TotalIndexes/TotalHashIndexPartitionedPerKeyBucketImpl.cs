@@ -19,7 +19,7 @@ namespace Orleans.Indexing
 
         internal override GrainReference GetNextBucket(out IIndexInterface<K, V> nextBucketIndexInterface)
         {
-            var nextBucket = GrainFactory.GetGrain<TotalHashIndexPartitionedPerKeyBucketImpl<K, V>>(IndexUtils.GetNextIndexBucketIdInChain(this.AsWeaklyTypedReference()));
+            var nextBucket = this.GrainFactory.GetGrain<TotalHashIndexPartitionedPerKeyBucketImpl<K, V>>(IndexUtils.GetNextIndexBucketIdInChain(this.AsWeaklyTypedReference()));
             nextBucketIndexInterface = nextBucket;
             return nextBucket.AsWeaklyTypedReference();
         }
@@ -37,7 +37,7 @@ namespace Orleans.Indexing
 
         internal override GrainReference GetNextBucket(out IIndexInterface<K, V> nextBucketIndexInterface)
         {
-            var nextBucket = GrainFactory.GetGrain<TotalHashIndexPartitionedPerKeyBucketImplTransactional<K, V>>(IndexUtils.GetNextIndexBucketIdInChain(this.AsWeaklyTypedReference()));
+            var nextBucket = this.GrainFactory.GetGrain<TotalHashIndexPartitionedPerKeyBucketImplTransactional<K, V>>(IndexUtils.GetNextIndexBucketIdInChain(this.AsWeaklyTypedReference()));
             nextBucketIndexInterface = nextBucket;
             return nextBucket.AsWeaklyTypedReference();
         }

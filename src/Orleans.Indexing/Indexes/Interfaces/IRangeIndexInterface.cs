@@ -1,5 +1,4 @@
 using Orleans.Concurrency;
-using System.Threading.Tasks;
 
 namespace Orleans.Indexing
 {

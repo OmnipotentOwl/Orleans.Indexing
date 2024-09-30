@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Orleans.Concurrency;
 using Orleans.Runtime;
 
@@ -16,7 +12,7 @@ namespace Orleans.Indexing.Facet
     {
         private protected NonTransactionalState<TWrappedState> nonTransactionalState;
 
-        public WorkflowIndexedStateBase(IServiceProvider sp, IIndexedStateConfiguration config, IGrainActivationContext context)
+        public WorkflowIndexedStateBase(IServiceProvider sp, IIndexedStateConfiguration config, IGrainContext context)
             : base(sp, config, context)
         {
         }
@@ -26,7 +22,7 @@ namespace Orleans.Indexing.Facet
 
         internal override Task OnDeactivateAsync(CancellationToken ct)
         {
-            base.Logger.Trace($"Deactivating indexable grain of type {base.grain.GetType().Name} in silo {this.SiloIndexManager.SiloAddress}.");
+            this.Logger.Trace($"Deactivating indexable grain of type {this.grain.GetType().Name} in silo {this.SiloIndexManager.SiloAddress}.");
             return this.RemoveFromActiveIndexes();
         }
 
@@ -35,13 +31,13 @@ namespace Orleans.Indexing.Facet
         public override Task<TResult> PerformRead<TResult>(Func<TGrainState, TResult> readFunction)
             => this.nonTransactionalState.PerformRead(wrappedState => readFunction(wrappedState.UserState));
 
-        public async override Task<TResult> PerformUpdate<TResult>(Func<TGrainState, TResult> updateFunction)
+        public override async Task<TResult> PerformUpdate<TResult>(Func<TGrainState, TResult> updateFunction)
         {
             // NonTransactionalState only does the grain-state update here; we then incorporate its write into the
             // index-update workflow via WriteStateAsync().
             var result = await this.nonTransactionalState.PerformUpdate(wrappedState => updateFunction(wrappedState.UserState));
             this._grainIndexes.MapStateToProperties(this.nonTransactionalState.State.UserState);
-            await base.UpdateIndexes(IndexUpdateReason.WriteState, onlyUpdateActiveIndexes: false, writeStateIfConstraintsAreNotViolated: true);
+            await this.UpdateIndexes(IndexUpdateReason.WriteState, onlyUpdateActiveIndexes: false, writeStateIfConstraintsAreNotViolated: true);
             return result;
         }
 
@@ -51,12 +47,12 @@ namespace Orleans.Indexing.Facet
 
         private protected async Task InitializeState()
         {
-            var storage = base.SiloIndexManager.GetStorageBridge<TWrappedState>(base.grain, base.IndexedStateConfig.StorageName);
+            var storage = this.SiloIndexManager.GetStorageBridge<TWrappedState>(this.grain, this.IndexedStateConfig.StorageName);
             this.nonTransactionalState = await NonTransactionalState<TWrappedState>.CreateAsync(storage);
             await this.PerformRead();
 
-            this.nonTransactionalState.State.EnsureNullValues(base._grainIndexes.PropertyNullValues);
-            base._grainIndexes.AddMissingBeforeImages(this.nonTransactionalState.State.UserState);
+            this.nonTransactionalState.State.EnsureNullValues(this._grainIndexes.PropertyNullValues);
+            this._grainIndexes.AddMissingBeforeImages(this.nonTransactionalState.State.UserState);
         }
 
         private protected Task FinishActivateAsync()
@@ -68,24 +64,20 @@ namespace Orleans.Indexing.Facet
         /// <summary>
         /// Inserts the current grain to the active indexes only if it already has a persisted state
         /// </summary>
-        protected Task InsertIntoActiveIndexes()
-        {
+        protected Task InsertIntoActiveIndexes() =>
             // Check if it contains anything to be indexed
-            return this._grainIndexes.HasIndexImages
+            this._grainIndexes.HasIndexImages
                 ? this.UpdateIndexes(IndexUpdateReason.OnActivate, onlyUpdateActiveIndexes: true, writeStateIfConstraintsAreNotViolated: false)
                 : Task.CompletedTask;
-        }
 
         /// <summary>
         /// Removes the current grain from active indexes
         /// </summary>
-        protected Task RemoveFromActiveIndexes()
-        {
+        protected Task RemoveFromActiveIndexes() =>
             // Check if it has anything indexed
-            return this._grainIndexes.HasIndexImages
+            this._grainIndexes.HasIndexImages
                 ? this.UpdateIndexes(IndexUpdateReason.OnDeactivate, onlyUpdateActiveIndexes: true, writeStateIfConstraintsAreNotViolated: false)
                 : Task.CompletedTask;
-        }
 
         /// <summary>
         /// Eagerly Applies updates to the indexes defined on this grain
@@ -140,7 +132,7 @@ namespace Orleans.Indexing.Facet
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private protected Task ApplyIndexUpdatesLazily(InterfaceToUpdatesMap interfaceToUpdatesMap)
             => Task.WhenAll(interfaceToUpdatesMap.Select(kvp => this.GetWorkflowQueue(kvp.Key).AddToQueue(new IndexWorkflowRecord(interfaceToUpdatesMap.WorkflowIds[kvp.Key],
-                                                                                                       base.iIndexableGrain, kvp.Value).AsImmutable())));
+                                                                                                       this.iIndexableGrain, kvp.Value).AsImmutable())));
 
         private protected void UpdateBeforeImages(InterfaceToUpdatesMap interfaceToUpdatesMap)
             => this._grainIndexes.UpdateBeforeImages(interfaceToUpdatesMap);

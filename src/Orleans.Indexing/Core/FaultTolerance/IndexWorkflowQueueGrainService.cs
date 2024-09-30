@@ -1,9 +1,6 @@
 using Orleans.Concurrency;
 using Orleans.Providers;
 using Orleans.Runtime;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Orleans.Indexing
 {
@@ -29,27 +26,32 @@ namespace Orleans.Indexing
         private IndexWorkflowQueueBase _base;
 
         internal IndexWorkflowQueueGrainService(SiloIndexManager siloIndexManager, Type grainInterfaceType, int queueSequenceNumber, bool isDefinedAsFaultTolerantGrain)
-            : base(IndexWorkflowQueueBase.CreateIndexWorkflowQueueGrainReference(siloIndexManager, grainInterfaceType, queueSequenceNumber, siloIndexManager.SiloAddress).GrainIdentity,
+            : base(IndexWorkflowQueueBase.CreateIndexWorkflowQueueGrainReference(siloIndexManager, grainInterfaceType, queueSequenceNumber, siloIndexManager.SiloAddress).GrainId,
                                                                                  siloIndexManager.Silo, siloIndexManager.LoggerFactory)
         {
-            _base = new IndexWorkflowQueueBase(siloIndexManager, grainInterfaceType, queueSequenceNumber, siloIndexManager.SiloAddress, isDefinedAsFaultTolerantGrain,
-                                               () => base.GetGrainReference()); // lazy is needed because the runtime isn't attached until Registered
+            this._base = new IndexWorkflowQueueBase(siloIndexManager, grainInterfaceType, queueSequenceNumber, siloIndexManager.SiloAddress, isDefinedAsFaultTolerantGrain,
+                                               () => base.GrainReference); // lazy is needed because the runtime isn't attached until Registered
         }
 
         public Task AddAllToQueue(Immutable<List<IndexWorkflowRecord>> workflowRecords)
-            => _base.AddAllToQueue(workflowRecords);
+            =>
+                this._base.AddAllToQueue(workflowRecords);
 
         public Task AddToQueue(Immutable<IndexWorkflowRecord> workflowRecord)
-            => _base.AddToQueue(workflowRecord);
+            =>
+                this._base.AddToQueue(workflowRecord);
 
         public Task<Immutable<List<IndexWorkflowRecord>>> GetRemainingWorkflowsIn(HashSet<Guid> activeWorkflowsSet)
-            =>_base.GetRemainingWorkflowsIn(activeWorkflowsSet);
+            =>
+                this._base.GetRemainingWorkflowsIn(activeWorkflowsSet);
 
         public Task<Immutable<IndexWorkflowRecordNode>> GiveMoreWorkflowsOrSetAsIdle()
-            =>_base.GiveMoreWorkflowsOrSetAsIdle();
+            =>
+                this._base.GiveMoreWorkflowsOrSetAsIdle();
 
         public Task RemoveAllFromQueue(Immutable<List<IndexWorkflowRecord>> workflowRecords)
-            => _base.RemoveAllFromQueue(workflowRecords);
+            =>
+                this._base.RemoveAllFromQueue(workflowRecords);
 
         public Task Initialize(IIndexWorkflowQueue oldParentGrainService)
             => throw new NotSupportedException();

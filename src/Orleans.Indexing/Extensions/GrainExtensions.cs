@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Orleans.Runtime;
 using Orleans.Streams;
 
@@ -33,7 +30,7 @@ namespace Orleans.Indexing
         /// <returns></returns>
         internal static TGrainInterface AsReference<TGrainInterface>(this IAddressable grain, SiloIndexManager siloIndexManager, Type grainInterfaceType) where TGrainInterface: IGrain
             => (grain != null)
-                ? (TGrainInterface)siloIndexManager.GrainReferenceRuntime.Convert(grain.AsWeaklyTypedReference(), grainInterfaceType)
+                ? (TGrainInterface)siloIndexManager.GrainReferenceRuntime.Cast(grain.AsWeaklyTypedReference(), grainInterfaceType)
                 : throw new ArgumentNullException("grain", "Cannot pass null as an argument to AsReference");
 
         private const string WRONG_GRAIN_ERROR_MSG = "Passing a half baked grain as an argument. It is possible that you instantiated a grain class explicitly, as a regular object and not via Orleans runtime or via proper test mocking";
@@ -52,13 +49,11 @@ namespace Orleans.Indexing
             }
 
             return grain is GrainService grainService
-                ? grainService.GetGrainReference()
-                : throw new ArgumentException(string.Format("AsWeaklyTypedReference has been called on an unexpected type: {0}.", grain.GetType().FullName), "grain");
+                ? grainService.GrainReference
+                : throw new ArgumentException(
+                    $"AsWeaklyTypedReference has been called on an unexpected type: {grain.GetType().FullName}.", "grain");
         }
 
-        internal static IList<SequentialItem<T>> ToBatch<T>(this IEnumerable<T> items)
-        {
-            return items.Select(item => new SequentialItem<T>(item, null)).ToList();
-        }
+        internal static IList<SequentialItem<T>> ToBatch<T>(this IEnumerable<T> items) => items.Select(item => new SequentialItem<T>(item, null)).ToList();
     }
 }

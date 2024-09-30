@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace Orleans.Indexing
 {
     public static class TypeExtensions

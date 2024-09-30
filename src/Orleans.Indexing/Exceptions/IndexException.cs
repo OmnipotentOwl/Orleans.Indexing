@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.Serialization;
 using Orleans.Runtime;
 
@@ -8,12 +7,15 @@ namespace Orleans.Indexing
     /// This exception is thrown when a general indexing exception is encountered, or as a base for more specific subclasses.
     /// </summary>
     [Serializable]
+    [GenerateSerializer]
+    [Alias("Orleans.Indexing.IndexException")]
     public class IndexException : OrleansException
     {
         public IndexException(string message) : base(message)
         {
         }
 
+        [Obsolete]
         protected IndexException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {

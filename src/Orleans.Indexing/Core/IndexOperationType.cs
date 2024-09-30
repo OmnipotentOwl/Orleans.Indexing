@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Orleans.Indexing
+﻿namespace Orleans.Indexing
 {
     /// <summary>
     /// Enumeration of all index update operation types

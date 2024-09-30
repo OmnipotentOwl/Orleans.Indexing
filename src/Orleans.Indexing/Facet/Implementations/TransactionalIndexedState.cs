@@ -1,26 +1,22 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Orleans.Concurrency;
 using Orleans.Runtime;
 using Orleans.Transactions.Abstractions;
 
 namespace Orleans.Indexing.Facet
 {
-    class TransactionalIndexedState<TGrainState> : IndexedStateBase<TGrainState>,
+    internal class TransactionalIndexedState<TGrainState> : IndexedStateBase<TGrainState>,
                                                    ITransactionalIndexedState<TGrainState>,
                                                    ILifecycleParticipant<IGrainLifecycle>
                                                    where TGrainState : class, new()
     {
-        ITransactionalState<IndexedGrainStateWrapper<TGrainState>> transactionalState;
+        private ITransactionalState<IndexedGrainStateWrapper<TGrainState>> transactionalState;
 
         public TransactionalIndexedState(
                 IServiceProvider sp,
                 IIndexedStateConfiguration config,
-                IGrainActivationContext context,
+                IGrainContext context,
                 ITransactionalStateFactory transactionalStateFactory
             ) : base(sp, config, context)
         {
@@ -33,7 +29,7 @@ namespace Orleans.Indexing.Facet
 
         internal override Task OnActivateAsync(CancellationToken ct)
         {
-            base.Logger.Trace($"Activating indexable grain of type {grain.GetType().Name} in silo {this.SiloIndexManager.SiloAddress}.");
+            this.Logger.Trace($"Activating indexable grain of type {this.grain.GetType().Name} in silo {this.SiloIndexManager.SiloAddress}.");
             if (this.transactionalState == null)
             {
                 throw new IndexOperationException("Transactional Indexed State requires calling Attach() with an additional ITransactionalState<> facet on the grain's constructor.");
@@ -46,7 +42,7 @@ namespace Orleans.Indexing.Facet
 
         internal override Task OnDeactivateAsync(CancellationToken ct)
         {
-            base.Logger.Trace($"Deactivating indexable grain of type {this.grain.GetType().Name} in silo {this.SiloIndexManager.SiloAddress}.");
+            this.Logger.Trace($"Deactivating indexable grain of type {this.grain.GetType().Name} in silo {this.SiloIndexManager.SiloAddress}.");
 
             // Transactional indexes cannot be active and thus do not call InsertIntoActiveIndexes or RemoveFromActiveIndexes.
             return Task.CompletedTask;
@@ -63,7 +59,7 @@ namespace Orleans.Indexing.Facet
             });
         }
 
-        public async override Task<TResult> PerformUpdate<TResult>(Func<TGrainState, TResult> updateFunction)
+        public override async Task<TResult> PerformUpdate<TResult>(Func<TGrainState, TResult> updateFunction)
         {
             // TransactionalState does the grain-state write here as well as the update, then we do athe index updates.
             var result = await this.transactionalState.PerformUpdate(wrappedState =>
@@ -76,7 +72,7 @@ namespace Orleans.Indexing.Facet
                 return res;
             });
 
-            var interfaceToUpdatesMap = await base.UpdateIndexes(IndexUpdateReason.WriteState, onlyUpdateActiveIndexes: false, writeStateIfConstraintsAreNotViolated: true);
+            var interfaceToUpdatesMap = await this.UpdateIndexes(IndexUpdateReason.WriteState, onlyUpdateActiveIndexes: false, writeStateIfConstraintsAreNotViolated: true);
             // BeforeImage update is deferred, so we don't have potentially stale values if the transaction is rolled back, e.g. if a different grain's update fails
 
             return result;
@@ -84,14 +80,14 @@ namespace Orleans.Indexing.Facet
 
         #endregion public API
 
-        void EnsureStateInitialized(IndexedGrainStateWrapper<TGrainState> wrappedState, bool forUpdate)
+        private void EnsureStateInitialized(IndexedGrainStateWrapper<TGrainState> wrappedState, bool forUpdate)
         {
             // State initialization is deferred as we must be in a transaction context to access it.
-            wrappedState.EnsureNullValues(base._grainIndexes.PropertyNullValues);
+            wrappedState.EnsureNullValues(this._grainIndexes.PropertyNullValues);
             if (forUpdate)
             {
                 // Apply the deferred BeforeImage update.
-                _grainIndexes.UpdateBeforeImages(wrappedState.UserState, force:true);
+                this._grainIndexes.UpdateBeforeImages(wrappedState.UserState, force:true);
             }
         }
 
@@ -124,7 +120,7 @@ namespace Orleans.Indexing.Facet
                         var indexInfo = indexInterfaces.NamedIndexes[indexName];
                         var updateToIndex = new MemberUpdateOverriddenMode(mu, IndexUpdateMode.Transactional) as IMemberUpdate;
                         yield return indexInfo.IndexInterface.ApplyIndexUpdate(this.SiloIndexManager,
-                                                this.iIndexableGrain, updateToIndex.AsImmutable(), indexInfo.MetaData, base.BaseSiloAddress);
+                                                this.iIndexableGrain, updateToIndex.AsImmutable(), indexInfo.MetaData, this.BaseSiloAddress);
                     }
                 }
 

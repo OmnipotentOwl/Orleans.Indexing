@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using Orleans.Concurrency;
 using Orleans.Runtime;
 using Orleans.Transactions.Abstractions;
@@ -18,7 +17,7 @@ namespace Orleans.Indexing
 
         internal override GrainReference GetNextBucket(out IIndexInterface<K, V> nextBucketIndexInterface)
         {
-            var nextBucket = GrainFactory.GetGrain<ITotalHashIndexSingleBucket<K, V>>(IndexUtils.GetNextIndexBucketIdInChain(this.AsWeaklyTypedReference()));
+            var nextBucket = this.GrainFactory.GetGrain<ITotalHashIndexSingleBucket<K, V>>(IndexUtils.GetNextIndexBucketIdInChain(this.AsWeaklyTypedReference()));
             nextBucketIndexInterface = nextBucket;
             return nextBucket.AsWeaklyTypedReference();
         }
@@ -35,7 +34,7 @@ namespace Orleans.Indexing
 
         internal override GrainReference GetNextBucket(out IIndexInterface<K, V> nextBucketIndexInterface)
         {
-            var nextBucket = GrainFactory.GetGrain<ITotalHashIndexSingleBucketTransactional<K, V>>(IndexUtils.GetNextIndexBucketIdInChain(this.AsWeaklyTypedReference()));
+            var nextBucket = this.GrainFactory.GetGrain<ITotalHashIndexSingleBucketTransactional<K, V>>(IndexUtils.GetNextIndexBucketIdInChain(this.AsWeaklyTypedReference()));
             nextBucketIndexInterface = nextBucket;
             return nextBucket.AsWeaklyTypedReference();
         }

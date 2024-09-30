@@ -1,6 +1,4 @@
 using Orleans.Concurrency;
-using System;
-using System.Threading.Tasks;
 
 namespace Orleans.Indexing
 {
@@ -9,18 +7,18 @@ namespace Orleans.Indexing
     {
         private IIndexWorkflowQueueHandler _base;
 
-        internal SiloIndexManager SiloIndexManager => IndexManager.GetSiloIndexManager(ref __siloIndexManager, base.ServiceProvider);
+        internal SiloIndexManager SiloIndexManager => IndexManager.GetSiloIndexManager(ref this.__siloIndexManager, this.ServiceProvider);
         private SiloIndexManager __siloIndexManager;
 
-        public override Task OnActivateAsync()
+        public override Task OnActivateAsync(CancellationToken cancellationToken)
         {
-            DelayDeactivation(ReincarnatedIndexWorkflowQueue.ACTIVE_FOR_A_DAY);
-            return base.OnActivateAsync();
+            this.DelayDeactivation(ReincarnatedIndexWorkflowQueue.ACTIVE_FOR_A_DAY);
+            return base.OnActivateAsync(cancellationToken);
         }
 
         public Task Initialize(IIndexWorkflowQueue oldParentGrainService)
         {
-            if (_base == null)
+            if (this._base == null)
             {
                 var oldParentGrainServiceRef = oldParentGrainService.AsWeaklyTypedReference();
                 var parts = oldParentGrainServiceRef.GetPrimaryKeyString().Split('-');
@@ -33,8 +31,10 @@ namespace Orleans.Indexing
                 Type grainInterfaceType = this.SiloIndexManager.CachedTypeResolver.ResolveType(parts[0]);
                 int queueSequenceNumber = int.Parse(parts[1]);
 
-                _base = new IndexWorkflowQueueHandlerBase(this.SiloIndexManager, grainInterfaceType, queueSequenceNumber,
-                                                          oldParentGrainServiceRef.GrainServiceSiloAddress,
+                SystemTargetGrainId.TryParse(oldParentGrainServiceRef.GrainId, out var systemGrainId);
+
+                this._base = new IndexWorkflowQueueHandlerBase(this.SiloIndexManager, grainInterfaceType, queueSequenceNumber,
+                                                          systemGrainId.GetSiloAddress(),
                                                           isDefinedAsFaultTolerantGrain: true /*otherwise it shouldn't have reached here!*/,
                                                           () => this.AsWeaklyTypedReference());
             }
@@ -42,6 +42,7 @@ namespace Orleans.Indexing
         }
 
         public Task HandleWorkflowsUntilPunctuation(Immutable<IndexWorkflowRecordNode> workflowRecordsHead)
-            => _base.HandleWorkflowsUntilPunctuation(workflowRecordsHead);
+            =>
+                this._base.HandleWorkflowsUntilPunctuation(workflowRecordsHead);
     }
 }

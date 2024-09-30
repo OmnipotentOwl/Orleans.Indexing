@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace Orleans.Indexing
@@ -11,9 +9,13 @@ namespace Orleans.Indexing
     /// This class assumes that befImg and aftImg passed to it won't be altered later on, so they are immutable.
     /// </summary>
     [Serializable]
+    [GenerateSerializer]
+    [Alias("Orleans.Indexing.MemberUpdate")]
     internal class MemberUpdate : IMemberUpdate
     {
+        [Id(0)]
         private object _befImg;
+        [Id(1)]
         private object _aftImg;
 
         public IndexUpdateMode UpdateMode => IndexUpdateMode.NonTentative;
@@ -54,6 +56,7 @@ namespace Orleans.Indexing
 
         public object GetAfterImage() => (this.OperationType == IndexOperationType.Update || this.OperationType == IndexOperationType.Insert) ? this._aftImg : null;
 
+        [Id(2)]
         public IndexOperationType OperationType { get; }
 
         public override string ToString() => ToString(this);

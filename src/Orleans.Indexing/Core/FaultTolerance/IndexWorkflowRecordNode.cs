@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -10,11 +9,15 @@ namespace Orleans.Indexing
     /// This linked list makes the traversal more efficient.
     /// </summary>
     [Serializable]
+    [GenerateSerializer]
+    [Alias("Orleans.Indexing.IndexWorkflowRecordNode")]
     internal class IndexWorkflowRecordNode
     {
+        [Id(0)]
         internal IndexWorkflowRecord WorkflowRecord;
-
+        [Id(1)]
         internal IndexWorkflowRecordNode Prev = null;
+        [Id(2)]
         internal IndexWorkflowRecordNode Next = null;
 
         /// <summary>
@@ -26,19 +29,19 @@ namespace Orleans.Indexing
 
         public IndexWorkflowRecordNode(IndexWorkflowRecord workflow)
         {
-            WorkflowRecord = workflow;
+            this.WorkflowRecord = workflow;
         }
 
         public void Append(IndexWorkflowRecordNode elem, ref IndexWorkflowRecordNode tail)
         {
-            var tmpNext = Next;
+            var tmpNext = this.Next;
             if (tmpNext != null)
             {
                 elem.Next = tmpNext;
                 tmpNext.Prev = elem;
             }
             elem.Prev = this;
-            Next = elem;
+            this.Next = elem;
 
             if (tail == this)
             {
@@ -49,33 +52,35 @@ namespace Orleans.Indexing
         public IndexWorkflowRecordNode AppendPunctuation(ref IndexWorkflowRecordNode tail)
         {
             // We never append a punctuation to an existing punctuation; it should never be requested.
-            if (IsPunctuation) throw new WorkflowIndexException("Adding a punctuation to a workflow queue that already has a punctuation is not allowed.");
+            if (this.IsPunctuation) throw new WorkflowIndexException("Adding a punctuation to a workflow queue that already has a punctuation is not allowed.");
 
             var punctuation = new IndexWorkflowRecordNode();
-            Append(punctuation, ref tail);
+            this.Append(punctuation, ref tail);
             return punctuation;
         }
 
         public void Remove(ref IndexWorkflowRecordNode head, ref IndexWorkflowRecordNode tail)
         {
-            if (Prev == null) head = Next;
-            else Prev.Next = Next;
+            if (this.Prev == null) head = this.Next;
+            else
+                this.Prev.Next = this.Next;
 
-            if (Next == null) tail = Prev;
-            else Next.Prev = Prev;
+            if (this.Next == null) tail = this.Prev;
+            else
+                this.Next.Prev = this.Prev;
 
-            Clean();
+            this.Clean();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Clean()
         {
-            WorkflowRecord = null;
-            Next = null;
-            Prev = null;
+            this.WorkflowRecord = null;
+            this.Next = null;
+            this.Prev = null;
         }
 
-        internal bool IsPunctuation => WorkflowRecord == null;
+        internal bool IsPunctuation => this.WorkflowRecord == null;
 
         public override string ToString()
         {

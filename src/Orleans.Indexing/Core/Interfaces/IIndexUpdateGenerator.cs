@@ -1,4 +1,4 @@
-﻿namespace Orleans.Indexing
+namespace Orleans.Indexing
 {
     /// <summary>
     /// This interface specifies a method that each index should define for extracting the part of the grain state it is interested in. 
@@ -32,20 +32,23 @@
     internal abstract class IIndexUpdateGenerator<K, TProperties> : IIndexUpdateGenerator
     {
         object IIndexUpdateGenerator.ExtractIndexImage(object indexedGrainProperties)
-            => ExtractIndexImage((TProperties)indexedGrainProperties);
+            =>
+                this.ExtractIndexImage((TProperties)indexedGrainProperties);
 
         /// <summary>
         /// This method is the typed version of ExtractIndexImage
         /// </summary>
         /// <param name="indexedGrainProperties">the grain from which we want to extract some state to be indexed</param>
         /// <returns>an encapsulation of the part of the grain state that this index is interested in</returns>
-        abstract public K ExtractIndexImage(TProperties indexedGrainProperties);
+        public abstract K ExtractIndexImage(TProperties indexedGrainProperties);
 
         IMemberUpdate IIndexUpdateGenerator.CreateMemberUpdate(object indexedGrainProperties, object beforeImage)
-            => CreateMemberUpdate((TProperties)indexedGrainProperties, (K)beforeImage);
+            =>
+                this.CreateMemberUpdate((TProperties)indexedGrainProperties, (K)beforeImage);
 
         IMemberUpdate IIndexUpdateGenerator.CreateMemberUpdate(object afterImage)
-            => CreateMemberUpdate((K)afterImage);
+            =>
+                this.CreateMemberUpdate((K)afterImage);
 
         /// <summary>
         /// This method is the typed version of CreateMemberUpdate

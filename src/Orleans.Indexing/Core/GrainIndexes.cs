@@ -1,7 +1,4 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using Orleans.Concurrency;
 using Orleans.Indexing.Facet;
@@ -14,7 +11,7 @@ namespace Orleans.Indexing
         /// An immutable cached version of IndexInfo (containing IIndexUpdateGenerator) instances for the current indexes on the grain,
         /// keyed by interface.
         /// </summary>
-        private IDictionary<Type, InterfaceIndexes> interfaceToIndexMap = new Dictionary<Type, InterfaceIndexes>();
+        private readonly IDictionary<Type, InterfaceIndexes> interfaceToIndexMap = new Dictionary<Type, InterfaceIndexes>();
         internal InterfaceIndexes this[Type interfaceType] => this.interfaceToIndexMap[interfaceType];
         internal bool ContainsInterface(Type interfaceType) => this.interfaceToIndexMap.ContainsKey(interfaceType);
         internal IReadOnlyDictionary<string, object> PropertyNullValues { get; }
@@ -69,7 +66,7 @@ namespace Orleans.Indexing
         /// This method is called on activation of the grain, and when the UpdateIndexes method detects an inconsistency
         /// between the indexes in the index handler and the cached indexes of the current grain.
         /// </summary>
-        internal void AddMissingBeforeImages(object state) => UpdateBeforeImages(state, force: false);
+        internal void AddMissingBeforeImages(object state) => this.UpdateBeforeImages(state, force: false);
 
         internal void UpdateBeforeImages(object state, bool force)
         {
@@ -114,7 +111,7 @@ namespace Orleans.Indexing
             }
 
             // Note that there may not be an index update for all interfaces; thus, iterate the updates list.
-            interfaceToUpdatesMap.ForEach(kvp => updateBeforeImages(interfaceToIndexMap[kvp.Key], kvp.Value));
+            interfaceToUpdatesMap.ForEach(kvp => updateBeforeImages(this.interfaceToIndexMap[kvp.Key], kvp.Value));
         }
 
         internal bool HasIndexImages => this.interfaceToIndexMap.Values.Any(itf => itf.HasIndexImages);

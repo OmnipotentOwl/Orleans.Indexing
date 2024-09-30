@@ -1,6 +1,3 @@
-using System;
-using System.Threading.Tasks;
-
 namespace Orleans.Indexing.TestInjection
 {
     internal class ProductionInjectableCode : IInjectableCode

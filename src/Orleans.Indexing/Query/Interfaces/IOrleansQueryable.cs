@@ -1,6 +1,4 @@
 using Orleans.Streams;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Orleans.Indexing
 {

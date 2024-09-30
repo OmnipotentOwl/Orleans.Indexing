@@ -1,10 +1,6 @@
-using System;
-using Orleans.Runtime;
 using System.Reflection;
 using Orleans.Streams;
-using System.Threading.Tasks;
 using System.Linq.Expressions;
-using Orleans.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Orleans.Indexing
@@ -64,7 +60,7 @@ namespace Orleans.Indexing
         /// <typeparam name="TProperty">the property type to query over</typeparam>
         /// <returns>the query to lookup all active grains of a given type</returns>
         public IOrleansQueryable<TIGrain, TProperty> GetActiveGrains<TIGrain, TProperty>() where TIGrain : IIndexableGrain
-            => this.GetActiveGrains<TIGrain, TProperty>(this.indexManager.ServiceProvider.GetRequiredServiceByName<IStreamProvider>(IndexingConstants.INDEXING_STREAM_PROVIDER_NAME));
+            => this.GetActiveGrains<TIGrain, TProperty>(this.indexManager.ServiceProvider.GetRequiredKeyedService<IStreamProvider>(IndexingConstants.INDEXING_STREAM_PROVIDER_NAME));
 
         /// <summary>
         /// This method queries the active grains for the given grain interface.
@@ -95,7 +91,7 @@ namespace Orleans.Indexing
         public IIndexInterface GetIndex(Type iInterfaceType, string indexName)
         {
             // It should never happen that the indexes are not loaded if the index is registered in the index registry
-            return GetGrainIndexes(iInterfaceType).TryGetValue(indexName, out IndexInfo indexInfo)
+            return this.GetGrainIndexes(iInterfaceType).TryGetValue(indexName, out IndexInfo indexInfo)
                 ? indexInfo.IndexInterface
                 : throw new IndexException(string.Format("Index \"{0}\" does not exist for {1}.", indexName, iInterfaceType));
         }

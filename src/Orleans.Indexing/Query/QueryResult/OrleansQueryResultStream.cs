@@ -1,8 +1,4 @@
 using Orleans.Streams;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Orleans.Indexing
 {
@@ -13,11 +9,14 @@ namespace Orleans.Indexing
     /// </summary>
     /// <typeparam name="TIGrain">type of grain for query result</typeparam>
     [Serializable]
+    [GenerateSerializer]
+    [Alias("Orleans.Indexing.OrleansQueryResultStream`1")]
     public class OrleansQueryResultStream<TIGrain> : IOrleansQueryResultStream<TIGrain> where TIGrain : IIndexableGrain
     {
         // TODO: Currently, the whole result is stored here, but it is just a simple implementation. This implementation should
         // be replaced with a more sophisticated approach to asynchronously read the results on demand
 
+        [Id(0)]
         protected IAsyncStream<TIGrain> _stream;
 
         // Accept a queryResult instance which we shall observe
@@ -28,7 +27,7 @@ namespace Orleans.Indexing
 
         public void Dispose() => this._stream = null;
 
-        public Task OnCompletedAsync() => this._stream.OnCompletedAsync();
+        public Task OnCompletedAsync() => Task.CompletedTask; //this._stream.OnCompletedAsync(); TODO: Better understand the implications of this change from the original code
 
         public Task OnErrorAsync(Exception ex) => this._stream.OnErrorAsync(ex);
 

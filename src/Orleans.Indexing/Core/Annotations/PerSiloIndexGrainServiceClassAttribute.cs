@@ -1,5 +1,3 @@
-using System;
-
 namespace Orleans.Indexing
 {
     [AttributeUsage(AttributeTargets.Interface)]

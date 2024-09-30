@@ -1,5 +1,3 @@
-using System;
-
 namespace Orleans.Indexing
 {
     /// <summary>
@@ -7,11 +5,14 @@ namespace Orleans.Indexing
     /// the actual operation in the original update
     /// </summary>
     [Serializable]
+    [GenerateSerializer]
+    [Alias("Orleans.Indexing.MemberUpdateOverriddenOperation")]
     internal class MemberUpdateOverriddenOperation : IMemberUpdate
     {
+        [Id(0)]
         private IMemberUpdate _update;
 
-        public IndexUpdateMode UpdateMode => _update.UpdateMode;
+        public IndexUpdateMode UpdateMode => this._update.UpdateMode;
 
         public MemberUpdateOverriddenOperation(IMemberUpdate update, IndexOperationType opType)
         {
@@ -24,6 +25,7 @@ namespace Orleans.Indexing
         public object GetAfterImage()
             => (this.OperationType == IndexOperationType.Update || this.OperationType == IndexOperationType.Insert) ? this._update.GetAfterImage() : null;
 
+        [Id(1)]
         public IndexOperationType OperationType { get; }
 
         public override string ToString() => MemberUpdate.ToString(this);

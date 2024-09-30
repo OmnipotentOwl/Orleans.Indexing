@@ -1,5 +1,4 @@
 using Orleans.Streams;
-using System;
 
 namespace Orleans.Indexing
 {

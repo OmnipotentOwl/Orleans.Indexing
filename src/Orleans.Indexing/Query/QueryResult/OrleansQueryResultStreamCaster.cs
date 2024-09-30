@@ -1,8 +1,4 @@
 using Orleans.Streams;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Orleans.Indexing
 {
@@ -19,8 +15,11 @@ namespace Orleans.Indexing
     /// <typeparam name="ToTP">type of grain for output IOrleansQueryResultStream</typeparam>
 
     [Serializable]
+    [GenerateSerializer]
+    [Alias("Orleans.Indexing.OrleansQueryResultStreamCaster`2")]
     public class OrleansQueryResultStreamCaster<FromTP, ToTP> : IOrleansQueryResultStream<ToTP> where FromTP : IIndexableGrain where ToTP : IIndexableGrain
     {
+        [Id(0)]
         protected IOrleansQueryResultStream<FromTP> _stream;
 
         // Accept a queryResult instance which we shall observe
@@ -41,7 +40,7 @@ namespace Orleans.Indexing
         public Task OnNextAsync(IList<SequentialItem<ToTP>> batch)
         {
             var newBatch = batch.Select(item => new SequentialItem<FromTP>(item.Item.AsReference<FromTP>(), item.Token)).ToList();
-            return _stream.OnNextAsync(newBatch);
+            return this._stream.OnNextAsync(newBatch);
         }
 
         public Task<StreamSubscriptionHandle<ToTP>> SubscribeAsync(IAsyncBatchObserver<ToTP> observer)

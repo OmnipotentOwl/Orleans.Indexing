@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using Orleans.Streams;
@@ -16,7 +14,7 @@ namespace Orleans.Indexing
             if (expression.NodeType == ExpressionType.Call && ((MethodCallExpression)expression).Arguments.Count > 0)
             {
                 var genericArgs = ((MethodCallExpression)expression).Arguments[0].Type.GetGenericArguments();
-                return CreateQuery(expression, genericArgs[0], genericArgs[1]);
+                return this.CreateQuery(expression, genericArgs[0], genericArgs[1]);
             }
             throw new NotSupportedException();
         }
@@ -30,8 +28,8 @@ namespace Orleans.Indexing
             if (expression.NodeType == ExpressionType.Call)
             {
                 var methodCall = ((MethodCallExpression)expression);
-                if (IsWhereClause(methodCall)
-                    && CheckIsOrleansIndex(methodCall.Arguments[0], grainInterfaceType, iPropertiesType, out IIndexFactory indexFactory, out IStreamProvider streamProvider)
+                if (this.IsWhereClause(methodCall)
+                    && this.CheckIsOrleansIndex(methodCall.Arguments[0], grainInterfaceType, iPropertiesType, out IIndexFactory indexFactory, out IStreamProvider streamProvider)
                     && methodCall.Arguments[1] is UnaryExpression ue && ue.NodeType == ExpressionType.Quote && ue.Operand.NodeType == ExpressionType.Lambda)
                 {
                     var whereClause = (LambdaExpression)ue.Operand;
@@ -142,7 +140,7 @@ namespace Orleans.Indexing
         /// </summary>
         /// <param name="expression">An expression tree that represents a LINQ query.</param>
         /// <returns>The value that results from executing the specified query.</returns>
-        public TResult Execute<TResult>(Expression expression) => (TResult)Execute(expression);
+        public TResult Execute<TResult>(Expression expression) => (TResult)this.Execute(expression);
 
         #endregion IOrleansQueryProvider
     }

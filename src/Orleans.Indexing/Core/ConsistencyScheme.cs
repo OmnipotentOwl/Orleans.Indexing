@@ -1,8 +1,7 @@
-using System;
-
 namespace Orleans.Indexing
 {
-    [Flags] enum ConsistencyScheme
+    [Flags]
+    internal enum ConsistencyScheme
     {
         Workflow = 1,
         FaultTolerantWorkflow = 3,

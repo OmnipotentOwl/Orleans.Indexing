@@ -1,7 +1,3 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Orleans.Indexing
 {
     /// <summary>
@@ -51,11 +47,12 @@ namespace Orleans.Indexing
         private readonly SemaphoreSlim semaphore;
 
         public AsyncLock()
-            => semaphore = new SemaphoreSlim(1);
+            =>
+                this.semaphore = new SemaphoreSlim(1);
 
         public Task<IDisposable> LockAsync()
         {
-            var waitTask = semaphore.WaitAsync();
+            var waitTask = this.semaphore.WaitAsync();
             var releaser = (IDisposable)new LockReleaser(this);
             return waitTask.IsCompleted
                 ? Task.FromResult(releaser)
@@ -71,12 +68,12 @@ namespace Orleans.Indexing
 
             public void Dispose()
             {
-                if (target == null)
+                if (this.target == null)
                     return;
 
                 // first null it, next Release, so even if Release throws, we don't hold the reference any more.
-                AsyncLock tmp = target;
-                target = null;
+                AsyncLock tmp = this.target;
+                this.target = null;
                 try
                 {
                     tmp.semaphore.Release();

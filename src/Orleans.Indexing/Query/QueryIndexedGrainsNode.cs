@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using Orleans.Streams;
 
 namespace Orleans.Indexing
@@ -20,7 +18,7 @@ namespace Orleans.Indexing
 
         public override async Task<IOrleansQueryResult<TIGrain>> GetResults()
         {
-            IIndexInterface index = base.IndexFactory.GetIndex(typeof(TIGrain), this._indexName);
+            IIndexInterface index = this.IndexFactory.GetIndex(typeof(TIGrain), this._indexName);
 
             //the actual lookup for the query result to be streamed to the observer
             return (IOrleansQueryResult<TIGrain>)await (index is ITransactionalLookupIndex transactionalLookupIndex
@@ -30,8 +28,9 @@ namespace Orleans.Indexing
 
         public override async Task ObserveResults(IAsyncBatchObserver<TIGrain> observer)
         {
-            IIndexInterface index = base.IndexFactory.GetIndex(typeof(TIGrain), this._indexName);
-            IAsyncStream<TIGrain> resultStream = base.StreamProvider.GetStream<TIGrain>(Guid.NewGuid(), IndexUtils.GetIndexGrainPrimaryKey(typeof(TIGrain), this._indexName));
+            IIndexInterface index = this.IndexFactory.GetIndex(typeof(TIGrain), this._indexName);
+            StreamId streamId = StreamId.Create(IndexUtils.GetIndexGrainPrimaryKey(typeof(TIGrain), this._indexName), Guid.NewGuid());
+            IAsyncStream<TIGrain> resultStream = this.StreamProvider.GetStream<TIGrain>(streamId);
 
             IOrleansQueryResultStream<TIGrain> result = new OrleansQueryResultStream<TIGrain>(resultStream);
 

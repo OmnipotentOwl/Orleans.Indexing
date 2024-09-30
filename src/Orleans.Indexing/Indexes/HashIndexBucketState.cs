@@ -1,6 +1,4 @@
 using Orleans.Runtime;
-using System;
-using System.Collections.Generic;
 
 namespace Orleans.Indexing
 {
@@ -10,22 +8,27 @@ namespace Orleans.Indexing
     /// <typeparam name="K">type of hash-index key</typeparam>
     /// <typeparam name="V">type of grain that is being indexed</typeparam>
     [Serializable]
+    [GenerateSerializer]
+    [Alias("Orleans.Indexing.HashIndexBucketState`2")]
     public class HashIndexBucketState<K, V> where V : IIndexableGrain
     {
         /// <summary>
         /// The actual storage of the indexed values
         /// </summary>
+        [Id(0)]
         public Dictionary<K, HashIndexSingleBucketEntry<V>> IndexMap { get; set; }
 
         /// <summary>
         /// Contains the status of the index regarding its population process, which can be either
         /// UnderConstruction or Available. Available means that the index has already been populated.
         /// </summary>
+        [Id(1)]
         public IndexStatus IndexStatus { get; set; }
 
         /// <summary>
         /// Chains from one bucket to the next.
         /// </summary>
+        [Id(2)]
         public GrainReference NextBucket { get; set; }
     }
 
@@ -34,17 +37,21 @@ namespace Orleans.Indexing
     /// </summary>
     /// <typeparam name="T">the type of elements stored in the entry</typeparam>
     [Serializable]
+    [GenerateSerializer]
+    [Alias("Orleans.Indexing.HashIndexSingleBucketEntry`1")]
     public sealed class HashIndexSingleBucketEntry<T>
     {
         /// <summary>
         /// The set of values associated with a single key of the hash-index. The hash-set can contain more
         /// than one value if there is no uniqueness constraint on the hash-index.
         /// </summary>
+        [Id(0)]
         public HashSet<T> Values = new HashSet<T>();
 
         public const byte TENTATIVE_TYPE_NONE = 0;
         public const byte TENTATIVE_TYPE_DELETE = 1;
         public const byte TENTATIVE_TYPE_INSERT = 2;
+        [Id(1)]
         public byte TentativeOperationType = TENTATIVE_TYPE_NONE;
 
         internal void Remove(T item, IndexUpdateMode indexUpdateMode, bool isUniqueIndex)

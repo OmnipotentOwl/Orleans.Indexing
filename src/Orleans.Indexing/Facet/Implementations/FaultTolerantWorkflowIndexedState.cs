@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Orleans.Concurrency;
 using Orleans.Runtime;
 
@@ -18,17 +14,17 @@ namespace Orleans.Indexing.Facet
         public FaultTolerantWorkflowIndexedState(
                 IServiceProvider sp,
                 IIndexedStateConfiguration config,
-                IGrainActivationContext context,
+                IGrainContext context,
                 IGrainFactory grainFactory
             ) : base(sp, config, context)
         {
             this._grainFactory = grainFactory;
-            base.getWorkflowIdFunc = () => this.GenerateUniqueWorkflowId();
+            this.getWorkflowIdFunc = () => this.GenerateUniqueWorkflowId();
         }
 
         private bool _hasAnyTotalIndex;
 
-        private FaultTolerantIndexedGrainStateWrapper<TGrainState> ftWrappedState => base.nonTransactionalState.State;
+        private FaultTolerantIndexedGrainStateWrapper<TGrainState> ftWrappedState => this.nonTransactionalState.State;
 
         internal override IDictionary<Type, IIndexWorkflowQueue> WorkflowQueues
         {
@@ -44,17 +40,17 @@ namespace Orleans.Indexing.Facet
 
         public new void Participate(IGrainLifecycle lifecycle) => base.Participate<FaultTolerantWorkflowIndexedState<TGrainState>>(lifecycle);
 
-        internal async override Task OnActivateAsync(CancellationToken ct)
+        internal override async Task OnActivateAsync(CancellationToken ct)
         {
-            base.Logger.Trace($"Activating indexable grain of type {grain.GetType().Name} in silo {this.SiloIndexManager.SiloAddress}.");
-            await base.InitializeState();
+            this.Logger.Trace($"Activating indexable grain of type {this.grain.GetType().Name} in silo {this.SiloIndexManager.SiloAddress}.");
+            await this.InitializeState();
 
             // If the list of active workflows is null or empty we can assume that we were not previously activated
             // or did not have any incomplete workflow queue items in a prior activation.
             if (this.ActiveWorkflowsSet == null || this.ActiveWorkflowsSet.Count == 0)
             {
                 this.WorkflowQueues = null;
-                await base.FinishActivateAsync();
+                await this.FinishActivateAsync();
             }
             else
             {
@@ -62,9 +58,9 @@ namespace Orleans.Indexing.Facet
                 this.PruneWorkflowQueuesForMissingInterfaceTypes();
                 await this.HandleRemainingWorkflows()
                           .ContinueWith(t => Task.WhenAll(this.PruneActiveWorkflowsSetFromAlreadyHandledWorkflows(t.Result),
-                                                          base.FinishActivateAsync()));
+                                                          this.FinishActivateAsync()), ct);
             }
-            this._hasAnyTotalIndex = base._grainIndexes.HasAnyTotalIndex;
+            this._hasAnyTotalIndex = this._grainIndexes.HasAnyTotalIndex;
         }
 
         /// <summary>
@@ -101,7 +97,7 @@ namespace Orleans.Indexing.Facet
 
             // Update the indexes lazily. This is the first step, because its workflow record should be persisted in the workflow-queue first.
             // The reason for waiting here is to make sure that the workflow record in the workflow queue is correctly persisted.
-            await base.ApplyIndexUpdatesLazily(interfaceToUpdatesMap);
+            await this.ApplyIndexUpdatesLazily(interfaceToUpdatesMap);
 
             // Apply any unique index updates eagerly. This will always finish before the Lazy updates start (see "interleaving" below).
             if (numberOfUniqueIndexesUpdated > 0)
@@ -109,7 +105,7 @@ namespace Orleans.Indexing.Facet
                 // Updates to the unique indexes should be tentative so they are not visible to readers before making sure
                 // that all uniqueness constraints are satisfied (and that the grain state persistence completes successfully).
                 // UniquenessConstraintViolatedExceptions propagate; any tentative records will be removed by WorkflowQueueHandler.
-                await base.ApplyIndexUpdatesEagerly(interfaceToUpdatesMap, UpdateIndexType.Unique, isTentative: true);
+                await this.ApplyIndexUpdatesEagerly(interfaceToUpdatesMap, UpdateIndexType.Unique, isTentative: true);
             }
 
             // Finally, the grain state is persisted if requested.
@@ -124,7 +120,7 @@ namespace Orleans.Indexing.Facet
             }
 
             // If everything was successful, the before images are updated
-            base.UpdateBeforeImages(interfaceToUpdatesMap);
+            this.UpdateBeforeImages(interfaceToUpdatesMap);
         }
 
         /// <summary>
@@ -226,7 +222,7 @@ namespace Orleans.Indexing.Facet
         {
             // Interface types may be missing if the grain definition was updated.
             var oldQueues = this.WorkflowQueues;
-            this.WorkflowQueues = oldQueues.Where(kvp => base._grainIndexes.ContainsInterface(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            this.WorkflowQueues = oldQueues.Where(kvp => this._grainIndexes.ContainsInterface(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 
         public override Task<Immutable<HashSet<Guid>>> GetActiveWorkflowIdsSet()

@@ -1,4 +1,3 @@
-using System;
 using System.Reflection;
 
 namespace Orleans.Indexing
@@ -7,10 +6,14 @@ namespace Orleans.Indexing
     /// 
     /// </summary>
     [Serializable]
+    [GenerateSerializer]
+    [Alias("Orleans.Indexing.IndexUpdateGenerator")]
     internal class IndexUpdateGenerator : IIndexUpdateGenerator
     {
-        PropertyInfo prop;
-        object nullValue;
+        [Id(0)]
+        private PropertyInfo prop;
+        [Id(1)]
+        private object nullValue;
 
         public IndexUpdateGenerator(PropertyInfo prop)
         {
@@ -20,7 +23,7 @@ namespace Orleans.Indexing
 
         public IMemberUpdate CreateMemberUpdate(object gProps, object befImg)
         {
-            object aftImg = gProps == null ? null : ExtractIndexImage(gProps);
+            object aftImg = gProps == null ? null : this.ExtractIndexImage(gProps);
             return new MemberUpdate(befImg, aftImg);
         }
 

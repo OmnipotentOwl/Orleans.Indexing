@@ -1,5 +1,4 @@
 using Orleans.Indexing.Facet;
-using Orleans.Indexing.TestInjection;
 
 namespace Orleans.Indexing
 {

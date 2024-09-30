@@ -1,8 +1,4 @@
 using Orleans.Streams;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Orleans.Indexing
 {
@@ -12,6 +8,8 @@ namespace Orleans.Indexing
     /// </summary>
     /// <typeparam name="TIGrain">type of grain for query result</typeparam>
     [Serializable]
+    [GenerateSerializer]
+    [Alias("Orleans.Indexing.OrleansFirstQueryResultStream`1")]
     public class OrleansFirstQueryResultStream<TIGrain> : OrleansQueryResultStream<TIGrain> where TIGrain : IIndexableGrain
     {
         public OrleansFirstQueryResultStream() : this(CreateNewStream())

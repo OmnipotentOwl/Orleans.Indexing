@@ -1,10 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Orleans.ApplicationParts;
-using Orleans.Runtime;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
+using Orleans.Configuration;
+using Orleans.Serialization.TypeSystem;
 
 namespace Orleans.Indexing
 {
@@ -13,9 +11,8 @@ namespace Orleans.Indexing
     /// </summary>
     internal class IndexManager : ILifecycleParticipant<IClusterClientLifecycle>
     {
-        internal IApplicationPartManager ApplicationPartManager;
-
-        internal ITypeResolver CachedTypeResolver { get; }
+        internal HashSet<Type> RegisteredGrainClassTypes { get; }
+        internal TypeResolver CachedTypeResolver { get; }
 
         internal IndexRegistry IndexRegistry { get; private set; }
 
@@ -26,27 +23,26 @@ namespace Orleans.Indexing
         internal IGrainFactory GrainFactory { get; }
 
         // Note: For similar reasons as SiloIndexManager.__silo, __indexFactory relies on 'this' to have returned from its ctor.
-        internal IndexFactory IndexFactory => this.__indexFactory ?? (__indexFactory = this.ServiceProvider.GetRequiredService<IndexFactory>());
+        internal IndexFactory IndexFactory => this.__indexFactory ??= this.ServiceProvider.GetRequiredService<IndexFactory>();
         private IndexFactory __indexFactory;
 
         internal ILoggerFactory LoggerFactory { get; }
 
-        public IndexManager(IServiceProvider sp, IGrainFactory gf, IApplicationPartManager apm, ILoggerFactory lf, ITypeResolver typeResolver)
+        public IndexManager(IServiceProvider sp, IGrainFactory gf, ILoggerFactory lf, TypeResolver typeResolver, IOptions<GrainTypeOptions> grainTypeOptions)
         {
             this.ServiceProvider = sp;
             this.GrainFactory = gf;
-            this.ApplicationPartManager = apm;
             this.LoggerFactory = lf;
             this.CachedTypeResolver = typeResolver;
-
+            this.RegisteredGrainClassTypes = grainTypeOptions.Value.Classes;
             this.IndexingOptions = this.ServiceProvider.GetOptionsByName<IndexingOptions>(IndexingConstants.INDEXING_OPTIONS_NAME);
         }
 
         public void Participate(IClusterClientLifecycle lifecycle)
         {
-            if (!(this is SiloIndexManager))
+            if (this is not SiloIndexManager)
             {
-                lifecycle.Subscribe(this.GetType().FullName, ServiceLifecycleStage.ApplicationServices, ct => this.OnStartAsync(ct), ct => this.OnStopAsync(ct));
+                lifecycle.Subscribe(this.GetType().FullName, ServiceLifecycleStage.ApplicationServices, this.OnStartAsync, this.OnStopAsync);
             }
         }
 
@@ -72,13 +68,13 @@ namespace Orleans.Indexing
         public virtual Task OnStopAsync(CancellationToken ct) => Task.CompletedTask;
 
         internal static IndexManager GetIndexManager(ref IndexManager indexManager, IServiceProvider serviceProvider)
-            => indexManager ?? (indexManager = GetIndexManager(serviceProvider));
+            => indexManager ??= GetIndexManager(serviceProvider);
 
         internal static IndexManager GetIndexManager(IServiceProvider serviceProvider)
             => serviceProvider.GetRequiredService<IndexManager>();
 
         internal static SiloIndexManager GetSiloIndexManager(ref SiloIndexManager siloIndexManager, IServiceProvider serviceProvider)
-            => siloIndexManager ?? (siloIndexManager = GetSiloIndexManager(serviceProvider));
+            => siloIndexManager ??= GetSiloIndexManager(serviceProvider);
 
         internal static SiloIndexManager GetSiloIndexManager(IServiceProvider serviceProvider)
             => (SiloIndexManager)serviceProvider.GetRequiredService<IndexManager>();    // Throws an invalid cast operation if we're not on a Silo

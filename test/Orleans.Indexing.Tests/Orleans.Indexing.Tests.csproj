@@ -3,32 +3,28 @@
     <RootNamespace>Orleans.Indexing.Tests</RootNamespace>
     <AssemblyName>Orleans.Indexing.Tests</AssemblyName>
     <OrleansBuildTimeCodeGen>true</OrleansBuildTimeCodeGen>
-    <TargetFrameworks />
-    <TargetFramework>net461</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>default</LangVersion>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="FluentAssertions" Version="$(FluentAssertionsVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="2.0.0" />
-    <PackageReference Include="Microsoft.Orleans.CodeGenerator.MSBuild" Version="$(OrleansVersion)">
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.Orleans.Client" />
+    <PackageReference Include="Microsoft.Orleans.CodeGenerator">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Orleans.TestingHost" Version="$(OrleansVersion)" />
-    <PackageReference Include="Orleans.Persistence.CosmosDB" Version="1.2.1" />
-    <PackageReference Include="System.Net.Http" Version="$(SystemNetHttpVersion)" />
-    <PackageReference Include="xunit" Version="$(xUnitVersion)" />
-    <PackageReference Include="Xunit.SkippableFact" Version="$(XunitSkippableFactVersion)" />
-    <DotNetCliToolReference Include="dotnet-xunit" Version="$(DotNetxUnitVersion)" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="$(xUnitVersion)" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftTestSdkVersion)" />
+    <PackageReference Include="Microsoft.Orleans.TestingHost" />
+    <PackageReference Include="Microsoft.Orleans.Persistence.Cosmos" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="Xunit.SkippableFact" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\..\src\Orleans.Indexing\Orleans.Indexing.csproj" />
     <ProjectReference Include="..\TestInfrastructure\TestExtensions\TestExtensions.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>

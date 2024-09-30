@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 using Orleans.Concurrency;
@@ -21,10 +17,10 @@ namespace Orleans.Indexing
     public abstract class HashIndexSingleBucket<K, V> : Grain, ITransactionalLookupIndex<K, V>, IHashIndexSingleBucketInterface<K, V> where V : class, IIndexableGrain
     {
         // IndexManager (and therefore logger) cannot be set in ctor because Grain activation has not yet set base.Runtime.
-        internal SiloIndexManager SiloIndexManager => IndexManager.GetSiloIndexManager(ref __siloIndexManager, base.ServiceProvider);
+        internal SiloIndexManager SiloIndexManager => IndexManager.GetSiloIndexManager(ref this.__siloIndexManager, this.ServiceProvider);
         private SiloIndexManager __siloIndexManager;
 
-        private ILogger Logger => __logger ?? (__logger = this.SiloIndexManager.LoggerFactory.CreateLoggerWithFullCategoryName<HashIndexSingleBucket<K, V>>());
+        private ILogger Logger => this.__logger ??= this.SiloIndexManager.LoggerFactory.CreateLoggerWithFullCategoryName<HashIndexSingleBucket<K, V>>();
         private ILogger __logger;
 
         private ITransactionalState<HashIndexBucketState<K, V>> maybeTransactionalState;
@@ -38,7 +34,7 @@ namespace Orleans.Indexing
         public HashIndexSingleBucket(ITransactionalState<HashIndexBucketState<K, V>> transactionalState)
             => this.maybeTransactionalState = transactionalState;
 
-        public async override Task OnActivateAsync()
+        public override async Task OnActivateAsync(CancellationToken cancellationToken)
         {
             if (this.maybeTransactionalState == null)
             {
@@ -51,7 +47,7 @@ namespace Orleans.Indexing
             this.write_lock = new AsyncLock();
             this.writeRequestIdGen = 0;
             this.pendingWriteRequests = new HashSet<int>();
-            await base.OnActivateAsync();
+            await base.OnActivateAsync(cancellationToken);
         }
 
         private void EnsureStateInitialized(HashIndexBucketState<K, V> state)
@@ -66,23 +62,19 @@ namespace Orleans.Indexing
             }
         }
 
-        private async Task<TResult> ReadStateAsync<TResult>(Func<HashIndexBucketState<K, V>, TResult> readFunc)
-        {
-            return await this.maybeTransactionalState.PerformRead(state =>
+        private async Task<TResult> ReadStateAsync<TResult>(Func<HashIndexBucketState<K, V>, TResult> readFunc) =>
+            await this.maybeTransactionalState.PerformRead(state =>
             {
                 this.EnsureStateInitialized(state);
                 return readFunc(state);
             });
-        }
 
-        private async Task<TResult> WriteStateAsync<TResult>(Func<HashIndexBucketState<K, V>, TResult> updateFunc)
-        {
-            return await this.maybeTransactionalState.PerformUpdate(state =>
+        private async Task<TResult> WriteStateAsync<TResult>(Func<HashIndexBucketState<K, V>, TResult> updateFunc) =>
+            await this.maybeTransactionalState.PerformUpdate(state =>
             {
                 this.EnsureStateInitialized(state);
                 return updateFunc(state);
             });
-        }
 
         private Task WriteStateAsync(Action<HashIndexBucketState<K, V>> updateFunc)
             => this.WriteStateAsync(state => { updateFunc(state); return true; });
@@ -119,10 +111,10 @@ namespace Orleans.Indexing
             this.Logger.Trace($"Started calling DirectApplyIndexUpdateBatch with the following parameters: isUnique = {isUnique}, siloAddress = {siloAddress}, iUpdates = {MemberUpdate.UpdatesToString(iUpdates.Value)}");
 
             Task directApplyIndexUpdatesNonPersistent(IIndexableGrain g, IList<IMemberUpdate> updates)
-                => Task.WhenAll(updates.Select(updt => DirectApplyIndexUpdateNonPersistent(g, updt, isUnique, idxMetaData, siloAddress)));
+                => Task.WhenAll(updates.Select(updt => this.DirectApplyIndexUpdateNonPersistent(g, updt, isUnique, idxMetaData, siloAddress)));
 
             await Task.WhenAll(iUpdates.Value.Select(kv => directApplyIndexUpdatesNonPersistent(kv.Key, kv.Value)));
-            await PersistIndexNonTransactional();
+            await this.PersistIndexNonTransactional();
 
             this.Logger.Trace($"Finished calling DirectApplyIndexUpdateBatch with the following parameters: isUnique = {isUnique}, siloAddress = {siloAddress}, iUpdates = {MemberUpdate.UpdatesToString(iUpdates.Value)}");
             return true;
@@ -145,11 +137,11 @@ namespace Orleans.Indexing
         {
             if (this.IsTransactional)
             {
-                await ApplyIndexUpdateTransactional(updatedGrain, iUpdate.Value, isUnique, idxMetaData, siloAddress);
+                await this.ApplyIndexUpdateTransactional(updatedGrain, iUpdate.Value, isUnique, idxMetaData, siloAddress);
                 return true;
             }
-            await DirectApplyIndexUpdateNonPersistent(updatedGrain, iUpdate.Value, isUnique, idxMetaData, siloAddress);
-            await PersistIndexNonTransactional();
+            await this.DirectApplyIndexUpdateNonPersistent(updatedGrain, iUpdate.Value, isUnique, idxMetaData, siloAddress);
+            await this.PersistIndexNonTransactional();
             return true;
         }
 
@@ -162,8 +154,8 @@ namespace Orleans.Indexing
 
             async Task<IIndexInterface<K, V>> getNextBucketAndPersist()
             {
-                nonTransactionalState.State.NextBucket = GetNextBucket(out IIndexInterface<K, V> nextBucketIndexInterface);
-                await PersistIndexNonTransactional();
+                nonTransactionalState.State.NextBucket = this.GetNextBucket(out IIndexInterface<K, V> nextBucketIndexInterface);
+                await this.PersistIndexNonTransactional();
                 return nextBucketIndexInterface;
             }
 
@@ -199,7 +191,7 @@ namespace Orleans.Indexing
                     // TODO if the index was still unavailable when we received a delete operation
                     //if (fixIndexUnavailableOnDelete) { /*create tombstone*/ }
 
-                    state.NextBucket = GetNextBucket(out IIndexInterface<K, V> nextBucketIndexItf);
+                    state.NextBucket = this.GetNextBucket(out IIndexInterface<K, V> nextBucketIndexItf);
                     return nextBucketIndexItf;
                 }
                 return default;
@@ -268,7 +260,7 @@ namespace Orleans.Indexing
             {
                 if (state.IndexStatus != IndexStatus.Available)
                 {
-                    throw LogException("Index is not still available", IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainBucket1);
+                    throw this.LogException("Index is not still available", IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainBucket1);
                 }
                 if (state.IndexMap.TryGetValue(key, out HashIndexSingleBucketEntry<V> foundEntry))
                 {
@@ -304,14 +296,14 @@ namespace Orleans.Indexing
             {
                 if (state.IndexStatus != IndexStatus.Available)
                 {
-                    throw LogException("Index is not still available", IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainBucket2);
+                    throw this.LogException("Index is not still available", IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainBucket2);
                 }
                 if (state.IndexMap.TryGetValue(key, out HashIndexSingleBucketEntry<V> entry))
                 {
                     return (entry.Values.Count == 1 && !entry.IsTentative)
                         ? entry.Values.GetEnumerator().Current
-                        : throw LogException($"There are {entry.Values.Count} values for the unique lookup key \"{key}\" on index" +
-                                             $" \"{IndexUtils.GetIndexNameFromIndexGrain(this)}\", and the entry is{(entry.IsTentative ? "" : " not")} tentative.",
+                        : throw this.LogException($"There are {entry.Values.Count} values for the unique lookup key \"{key}\" on index" +
+                                                  $" \"{IndexUtils.GetIndexNameFromIndexGrain(this)}\", and the entry is{(entry.IsTentative ? "" : " not")} tentative.",
                                             IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainBucket3);
                 }
                 if (state.NextBucket != null)
@@ -320,7 +312,7 @@ namespace Orleans.Indexing
                     nextBucket = nb;
                     return default;
                 }
-                throw LogException($"The lookup key \"{key}\" does not exist on index \"{IndexUtils.GetIndexNameFromIndexGrain(this)}\".",
+                throw this.LogException($"The lookup key \"{key}\" does not exist on index \"{IndexUtils.GetIndexNameFromIndexGrain(this)}\".",
                                    IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainBucket4);
             });
             return nextBucket == null ? result
@@ -336,7 +328,7 @@ namespace Orleans.Indexing
                 state.IndexStatus = IndexStatus.Disposed;
                 state.IndexMap.Clear();
             });
-            base.DeactivateOnIdle();
+            this.DeactivateOnIdle();
             return Task.CompletedTask;
         }
 
@@ -353,18 +345,18 @@ namespace Orleans.Indexing
             {
                 if (state.IndexStatus != IndexStatus.Available)
                 {
-                    throw LogException("Index is not still available.", IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainBucket5);
+                    throw this.LogException("Index is not still available.", IndexingErrorCode.IndexingIndexIsNotReadyYet_GrainBucket5);
                 }
                 if (state.IndexMap.TryGetValue(key, out HashIndexSingleBucketEntry<V> entry))
                 {
-                    return new OrleansQueryResult<V>(entry.IsTentative ? Enumerable.Empty<V>() : entry.Values);
+                    return new OrleansQueryResult<V>(entry.IsTentative ? [] : entry.Values);
                 }
                 if (state.NextBucket != null)
                 {
                     this.GetNextBucket(out var nb);
                     nextBucket = nb;
                 }
-                return new OrleansQueryResult<V>(Enumerable.Empty<V>());
+                return new OrleansQueryResult<V>([]);
             });
 
             return nextBucket == null ? result

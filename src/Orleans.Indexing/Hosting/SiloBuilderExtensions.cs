@@ -1,11 +1,7 @@
-using System;
 using Microsoft.Extensions.DependencyInjection;
-using Orleans.Configuration;
-using Orleans.Hosting;
 using Orleans.Runtime;
 using Orleans.Indexing.Facet;
 using Orleans.Services;
-using System.Linq;
 
 namespace Orleans.Indexing
 {
@@ -14,21 +10,19 @@ namespace Orleans.Indexing
         /// <summary>
         /// Configure silo to use indexing using a configure action.
         /// </summary>
-        public static ISiloHostBuilder UseIndexing(this ISiloHostBuilder builder, Action<IndexingOptions> configureOptions = null)
+        public static ISiloBuilder UseIndexing(this ISiloBuilder builder, Action<IndexingOptions> configureOptions = null)
         {
             // This is necessary to get the configured NumWorkflowQueuesPerInterface for IndexFactory.RegisterIndexWorkflowQueueGrainServices.
             var indexingOptions = new IndexingOptions();
             configureOptions?.Invoke(indexingOptions);
 
             return builder
-                .ConfigureDefaults()
-                .AddSimpleMessageStreamProvider(IndexingConstants.INDEXING_STREAM_PROVIDER_NAME)
+                .AddMemoryStreams(IndexingConstants.INDEXING_STREAM_PROVIDER_NAME)
                 .AddMemoryGrainStorage(IndexingConstants.INDEXING_WORKFLOWQUEUE_STORAGE_PROVIDER_NAME)
                 .AddMemoryGrainStorage(IndexingConstants.INDEXING_STORAGE_PROVIDER_NAME)
                 .AddMemoryGrainStorage(IndexingConstants.MEMORY_STORAGE_PROVIDER_NAME)
-                .ConfigureApplicationParts(parts => parts.AddFrameworkPart(typeof(SiloBuilderExtensions).Assembly))
                 .ConfigureServices(services => services.UseIndexing(indexingOptions))
-                .ConfigureServices((context, services) => ApplicationPartsIndexableGrainLoader.RegisterGrainServices(context, services, indexingOptions))
+                .ConfigureServices(services => ApplicationPartsIndexableGrainLoader.RegisterGrainServices(services, indexingOptions))
                 .UseTransactions();
         }
 
@@ -57,7 +51,7 @@ namespace Orleans.Indexing
         }
 
         internal static void AddGrainService(this IServiceCollection services, Func<IServiceProvider, IGrainService> creationFunc)
-            => services.AddSingleton(sp => creationFunc(sp));
+            => services.AddSingleton(creationFunc);
 
         /// <summary>
         /// Registers an existing registration of <typeparamref name="TImplementation"/> as a provider of service type <typeparamref name="TService"/>.

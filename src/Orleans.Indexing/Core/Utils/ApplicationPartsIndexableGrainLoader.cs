@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Orleans.ApplicationParts;
-using Orleans.Hosting;
-using Orleans.Runtime;
+using Microsoft.Extensions.Options;
+using Orleans.Configuration;
 
 namespace Orleans.Indexing
 {
@@ -29,9 +26,10 @@ namespace Orleans.Indexing
             this.logger = this.indexManager.LoggerFactory.CreateLoggerWithFullCategoryName<ApplicationPartsIndexableGrainLoader>();
         }
 
-        private static Type[] GetIndexedConcreteGrainClasses(IApplicationPartManager applicationPartManager, ILogger logger = null)
-            => applicationPartManager.ApplicationParts.OfType<AssemblyPart>()
+        private static Type[] GetIndexedConcreteGrainClasses(HashSet<Type> grainClasses, ILogger logger = null)
+            => grainClasses
                 .SelectMany(part => part.Assembly.GetIndexedGrainClasses())
+                .ToHashSet()
                 .ToArray();
 
         /// <summary>
@@ -40,7 +38,7 @@ namespace Orleans.Indexing
         /// </summary>
         /// <returns>An index registry for the silo. </returns>
         internal IndexRegistry CreateIndexRegistry()
-            => GetIndexRegistry(this, GetIndexedConcreteGrainClasses(this.indexManager.ApplicationPartManager, this.logger));
+            => GetIndexRegistry(this, GetIndexedConcreteGrainClasses(this.indexManager.RegisteredGrainClassTypes, this.logger));
 
         /// <summary>
         /// This method crawls the assemblies and looks for the index definitions (determined by extending the <see cref="IIndexableGrain{TProperties}"/>
@@ -50,12 +48,14 @@ namespace Orleans.Indexing
         /// registered to the IServiceCollection before Silo construction and the rest of Index creation requires the IServiceProvider which
         /// is created as part of Silo construction.</remarks>
         /// <returns>An index registry for the silo. </returns>
-        internal static void RegisterGrainServices(HostBuilderContext context, IServiceCollection services, IndexingOptions indexingOptions)
+        internal static void RegisterGrainServices(IServiceCollection services, IndexingOptions indexingOptions)
         {
             var indexedClasses = new HashSet<Type>();
             var indexedInterfaces = new HashSet<Type>();
 
-            foreach (var grainClassType in GetIndexedConcreteGrainClasses(context.GetApplicationPartManager()))
+            using ServiceProvider serviceProvider = services.BuildServiceProvider();
+            var typeList = serviceProvider.GetRequiredService<IOptions<GrainTypeOptions>>().Value.Classes;
+            foreach (var grainClassType in GetIndexedConcreteGrainClasses(typeList))
             {
                 var consistencyScheme = grainClassType.GetConsistencyScheme();
                 if (consistencyScheme == ConsistencyScheme.Transactional)
@@ -165,7 +165,7 @@ namespace Orleans.Indexing
                     return dict;
                 }
 
-                return indexedInterfaces.SelectMany(itf => getNullPropertyValuesForInterface(itf))
+                return indexedInterfaces.SelectMany(getNullPropertyValuesForInterface)
                                         .Aggregate(new Dictionary<string, (string itfName, object nullValue)>(), (dict, pair) => addToDict(dict, pair))
                                         .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.nullValue);
             }
@@ -265,7 +265,7 @@ namespace Orleans.Indexing
                                  string indexName, Type indexType, bool isEager, bool isUnique, int maxEntriesPerBucket)
         {
             indexesOnGrain[indexName] = this.indexManager.IndexFactory.CreateIndex(indexType, indexName, isUnique, isEager, maxEntriesPerBucket, property);
-            this.logger.Info($"Index created: Interface = {grainInterfaceType.Name}, property = {propertiesArg.Name}, index = {indexName}");
+            this.logger.Info(IndexingErrorCode.Indexing, "Index created: Interface = {interface}, property = {property}, index = {indexName}", grainInterfaceType.Name, propertiesArg.Name, indexName);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.Serialization;
 
 namespace Orleans.Indexing
@@ -7,12 +6,15 @@ namespace Orleans.Indexing
     /// This exception is thrown when a uniqueness constraint defined on an index is violated.
     /// </summary>
     [Serializable]
+    [GenerateSerializer]
+    [Alias("Orleans.Indexing.UniquenessConstraintViolatedException")]
     public class UniquenessConstraintViolatedException : IndexException
     {
         public UniquenessConstraintViolatedException(string message) : base(message)
         {
         }
 
+        [Obsolete]
         protected UniquenessConstraintViolatedException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {

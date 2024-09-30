@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Collections;
 using System.Linq.Expressions;
 using Orleans.Streams;
@@ -50,6 +46,6 @@ namespace Orleans.Indexing
         public IEnumerator<TProperties> GetEnumerator()
             => throw new NotSupportedException("GetEnumerator is not supported on QueryGrainsNode.");
 
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
     }
 }

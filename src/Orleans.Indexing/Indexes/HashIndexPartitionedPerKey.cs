@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans.Concurrency;
 using Orleans.Runtime;
@@ -36,8 +32,8 @@ namespace Orleans.Indexing
 
         public async Task<bool> DirectApplyIndexUpdateBatch(Immutable<IDictionary<IIndexableGrain, IList<IMemberUpdate>>> iUpdates, bool isUnique, IndexMetaData idxMetaData, SiloAddress siloAddress = null)
         {
-            logger.Trace($"Started calling DirectApplyIndexUpdateBatch with the following parameters: isUnique = {isUnique}, siloAddress = {siloAddress}," +
-                         $" iUpdates = {MemberUpdate.UpdatesToString(iUpdates.Value)}");
+            this.logger.Trace($"Started calling DirectApplyIndexUpdateBatch with the following parameters: isUnique = {isUnique}, siloAddress = {siloAddress}," +
+                              $" iUpdates = {MemberUpdate.UpdatesToString(iUpdates.Value)}");
 
             IDictionary<IIndexableGrain, IList<IMemberUpdate>> updates = iUpdates.Value;
             IDictionary<int, IDictionary<IIndexableGrain, IList<IMemberUpdate>>> bucketUpdates = new Dictionary<int, IDictionary<IIndexableGrain, IList<IMemberUpdate>>>();
@@ -58,8 +54,8 @@ namespace Orleans.Indexing
                     IndexOperationType opType = update.OperationType;
                     if (opType == IndexOperationType.Update)
                     {
-                        int befImgHash = GetBucketIndexFromHashCode(update.GetBeforeImage());
-                        int aftImgHash = GetBucketIndexFromHashCode(update.GetAfterImage());
+                        int befImgHash = this.GetBucketIndexFromHashCode(update.GetBeforeImage());
+                        int aftImgHash = this.GetBucketIndexFromHashCode(update.GetAfterImage());
 
                         if (befImgHash == aftImgHash)
                         {
@@ -73,12 +69,12 @@ namespace Orleans.Indexing
                     }
                     else if (opType == IndexOperationType.Insert)
                     {
-                        int aftImgHash = GetBucketIndexFromHashCode(update.GetAfterImage());
+                        int aftImgHash = this.GetBucketIndexFromHashCode(update.GetAfterImage());
                         AddUpdateToBucket(g, aftImgHash, update);
                     }
                     else if (opType == IndexOperationType.Delete)
                     {
-                        int befImgHash = GetBucketIndexFromHashCode(update.GetBeforeImage());
+                        int befImgHash = this.GetBucketIndexFromHashCode(update.GetBeforeImage());
                         AddUpdateToBucket(g, befImgHash, update);
                     }
                 }
@@ -90,8 +86,8 @@ namespace Orleans.Indexing
                 return bucket.DirectApplyIndexUpdateBatch(kv.Value.AsImmutable(), isUnique, idxMetaData, siloAddress);
             }));
 
-            logger.Trace($"Finished calling DirectApplyIndexUpdateBatch with the following parameters: isUnique = {isUnique}, siloAddress = {siloAddress}," +
-                         $" iUpdates = {MemberUpdate.UpdatesToString(iUpdates.Value)}, results = '{string.Join(", ", results)}'");
+            this.logger.Trace($"Finished calling DirectApplyIndexUpdateBatch with the following parameters: isUnique = {isUnique}, siloAddress = {siloAddress}," +
+                              $" iUpdates = {MemberUpdate.UpdatesToString(iUpdates.Value)}, results = '{string.Join(", ", results)}'");
             return true;
         }
 
@@ -107,8 +103,8 @@ namespace Orleans.Indexing
             IndexOperationType opType = update.OperationType;
             if (opType == IndexOperationType.Update)
             {
-                int befImgHash = GetBucketIndexFromHashCode(update.GetBeforeImage());
-                int aftImgHash = GetBucketIndexFromHashCode(update.GetAfterImage());
+                int befImgHash = this.GetBucketIndexFromHashCode(update.GetBeforeImage());
+                int aftImgHash = this.GetBucketIndexFromHashCode(update.GetAfterImage());
                 BucketT befImgBucket = this.GetBucketGrain(befImgHash);
                 if (befImgHash == aftImgHash)
                 {
@@ -123,13 +119,13 @@ namespace Orleans.Indexing
             }
             else if (opType == IndexOperationType.Insert)
             {
-                int aftImgHash = GetBucketIndexFromHashCode(update.GetAfterImage());
+                int aftImgHash = this.GetBucketIndexFromHashCode(update.GetAfterImage());
                 BucketT aftImgBucket = this.GetBucketGrain(aftImgHash);
                 return await aftImgBucket.DirectApplyIndexUpdate(g, iUpdate, isUniqueIndex, idxMetaData);
             }
             else if (opType == IndexOperationType.Delete)
             {
-                int befImgHash = GetBucketIndexFromHashCode(update.GetBeforeImage());
+                int befImgHash = this.GetBucketIndexFromHashCode(update.GetBeforeImage());
                 BucketT befImgBucket = this.GetBucketGrain(befImgHash);
                 return await befImgBucket.DirectApplyIndexUpdate(g, iUpdate, isUniqueIndex, idxMetaData);
             }
@@ -138,11 +134,11 @@ namespace Orleans.Indexing
 
         public Task LookupAsync(IOrleansQueryResultStream<V> result, K key)
         {
-            logger.Trace($"Streamed index lookup called for key = {key}");
+            this.logger.Trace($"Streamed index lookup called for key = {key}");
 
-            var keyHash = GetBucketIndexFromHashCode(key);
+            var keyHash = this.GetBucketIndexFromHashCode(key);
             BucketT targetBucket = this.GetBucketGrain(keyHash);
-            return isTransactional ? ((ITransactionalLookupIndex<K, V>)targetBucket).LookupTransactionalAsync(result, key)
+            return this.isTransactional ? ((ITransactionalLookupIndex<K, V>)targetBucket).LookupTransactionalAsync(result, key)
                                    : targetBucket.LookupAsync(result, key);
         }
 
@@ -153,14 +149,14 @@ namespace Orleans.Indexing
             Task<V> tsk = taskCompletionSource.Task;
             Action<V> responseHandler = taskCompletionSource.SetResult;
             await result.SubscribeAsync(new QueryFirstResultStreamObserver<V>(responseHandler));
-            await LookupAsync(result, key);
+            await this.LookupAsync(result, key);
             return await tsk;
         }
 
         public Task Dispose()
         {
             // TODO Right now we cannot do anything; we need to know the list of buckets.
-            Debug.Assert(!isTransactional, "Should not call Dispose on Transactional indexes");
+            Debug.Assert(!this.isTransactional, "Should not call Dispose on Transactional indexes");
             return Task.CompletedTask;
         }
 
@@ -178,9 +174,9 @@ namespace Orleans.Indexing
 
         public Task<IOrleansQueryResult<V>> LookupAsync(K key)
         {
-            logger.Trace($"Eager index lookup called for key = {key}");
+            this.logger.Trace($"Eager index lookup called for key = {key}");
 
-            var keyHash = GetBucketIndexFromHashCode(key);
+            var keyHash = this.GetBucketIndexFromHashCode(key);
             BucketT targetBucket = this.GetBucketGrain(keyHash);
             return this.isTransactional ? ((ITransactionalLookupIndex<K, V>)targetBucket).LookupTransactionalAsync(key)
                                         : targetBucket.LookupAsync(key);

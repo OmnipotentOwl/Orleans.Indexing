@@ -4,6 +4,8 @@ using System.Runtime.Serialization;
 namespace Orleans.Indexing.Tests
 {
     [Serializable]
+    [GenerateSerializer]
+    [Alias("Orleans.Indexing.Tests.TestFailedException")]
     public class TestFailedException : Exception
     {
         public TestFailedException() : base("Indexing test failed.") { }

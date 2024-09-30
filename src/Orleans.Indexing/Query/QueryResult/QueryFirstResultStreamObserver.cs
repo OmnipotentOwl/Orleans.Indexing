@@ -1,7 +1,4 @@
 using Orleans.Streams;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Orleans.Indexing
 {
@@ -32,7 +29,7 @@ namespace Orleans.Indexing
         public async Task OnNextAsync(IList<SequentialItem<T>> items)
         {
             foreach (var item in items)
-                await OnNextAsync(item.Item);
+                await this.OnNextAsync(item.Item);
         }
     }
 }

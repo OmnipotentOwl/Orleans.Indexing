@@ -1,8 +1,5 @@
 using Orleans.Concurrency;
 using Orleans.Runtime;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Orleans.Indexing
 {
@@ -12,18 +9,18 @@ namespace Orleans.Indexing
         internal static TimeSpan ACTIVE_FOR_A_DAY = TimeSpan.FromDays(1);
         private IndexWorkflowQueueBase _base;
 
-        internal SiloIndexManager SiloIndexManager => IndexManager.GetSiloIndexManager(ref __siloIndexManager, base.ServiceProvider);
+        internal SiloIndexManager SiloIndexManager => IndexManager.GetSiloIndexManager(ref this.__siloIndexManager, this.ServiceProvider);
         private SiloIndexManager __siloIndexManager;
 
-        public override Task OnActivateAsync()
+        public override Task OnActivateAsync(CancellationToken cancellationToken)
         {
-            DelayDeactivation(ACTIVE_FOR_A_DAY);
-            return base.OnActivateAsync();
+            this.DelayDeactivation(ACTIVE_FOR_A_DAY);
+            return base.OnActivateAsync(cancellationToken);
         }
 
         public Task Initialize(IIndexWorkflowQueue oldParentGrainService)
         {
-            if (_base == null)
+            if (this._base == null)
             {
                 GrainReference oldParentGrainServiceRef = oldParentGrainService.AsWeaklyTypedReference();
                 string[] parts = oldParentGrainServiceRef.GetPrimaryKeyString().Split('-');
@@ -36,8 +33,10 @@ namespace Orleans.Indexing
                 Type grainInterfaceType = this.SiloIndexManager.CachedTypeResolver.ResolveType(parts[0]);
                 int queueSequenceNumber = int.Parse(parts[1]);
 
-                _base = new IndexWorkflowQueueBase(this.SiloIndexManager, grainInterfaceType, queueSequenceNumber,
-                                                   oldParentGrainServiceRef.GrainServiceSiloAddress,
+                SystemTargetGrainId.TryParse(oldParentGrainServiceRef.GrainId, out var systemGrainId);
+
+                this._base = new IndexWorkflowQueueBase(this.SiloIndexManager, grainInterfaceType, queueSequenceNumber,
+                                                   systemGrainId.GetSiloAddress(),
                                                    isDefinedAsFaultTolerantGrain: true /*otherwise it shouldn't have reached here!*/,
                                                    parentFunc: () => this.AsWeaklyTypedReference(), recoveryGrainReference:oldParentGrainServiceRef);
             }
@@ -45,18 +44,23 @@ namespace Orleans.Indexing
         }
 
         public Task AddAllToQueue(Immutable<List<IndexWorkflowRecord>> workflowRecords)
-            => _base.AddAllToQueue(workflowRecords);
+            =>
+                this._base.AddAllToQueue(workflowRecords);
 
         public Task AddToQueue(Immutable<IndexWorkflowRecord> workflowRecord)
-            => _base.AddToQueue(workflowRecord);
+            =>
+                this._base.AddToQueue(workflowRecord);
 
         public Task<Immutable<List<IndexWorkflowRecord>>> GetRemainingWorkflowsIn(HashSet<Guid> activeWorkflowsSet)
-            => _base.GetRemainingWorkflowsIn(activeWorkflowsSet);
+            =>
+                this._base.GetRemainingWorkflowsIn(activeWorkflowsSet);
 
         public Task<Immutable<IndexWorkflowRecordNode>> GiveMoreWorkflowsOrSetAsIdle()
-            => _base.GiveMoreWorkflowsOrSetAsIdle();
+            =>
+                this._base.GiveMoreWorkflowsOrSetAsIdle();
 
         public Task RemoveAllFromQueue(Immutable<List<IndexWorkflowRecord>> workflowRecords)
-            => _base.RemoveAllFromQueue(workflowRecords);
+            =>
+                this._base.RemoveAllFromQueue(workflowRecords);
     }
 }

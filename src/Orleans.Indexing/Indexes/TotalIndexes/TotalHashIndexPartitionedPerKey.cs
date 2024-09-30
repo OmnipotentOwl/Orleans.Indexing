@@ -1,6 +1,3 @@
-using System;
-using System.Threading.Tasks;
-
 namespace Orleans.Indexing
 {
     /// <summary>
@@ -9,7 +6,9 @@ namespace Orleans.Indexing
     /// <typeparam name="K">type of hash-index key</typeparam>
     /// <typeparam name="V">type of grain interface that is being indexed</typeparam>
     [Serializable]
+    [GenerateSerializer]
     [TransactionalIndexVariant(typeof(TotalHashIndexPartitionedPerKeyTransactional<,>))]
+    [Alias("Orleans.Indexing.TotalHashIndexPartitionedPerKey`2")]
     public class TotalHashIndexPartitionedPerKey<K, V> : HashIndexPartitionedPerKey<K, V, ITotalHashIndexPartitionedPerKeyBucket<K, V>>,
                                                          ITotalIndex where V : class, IIndexableGrain
     {
@@ -20,6 +19,8 @@ namespace Orleans.Indexing
     }
 
     [Serializable]
+    [GenerateSerializer]
+    [Alias("Orleans.Indexing.TotalHashIndexPartitionedPerKeyTransactional`2")]
     public class TotalHashIndexPartitionedPerKeyTransactional<K, V> : HashIndexPartitionedPerKey<K, V, ITotalHashIndexPartitionedPerKeyBucketTransactional<K, V>>,
                                                                       ITotalIndex where V : class, IIndexableGrain
     {

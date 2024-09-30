@@ -20,7 +20,7 @@ namespace Orleans.Indexing.Tests
             return builder;
         }
 
-        internal static ISiloHostBuilder Configure(ISiloHostBuilder hostBuilder, string databaseName = null)
+        internal static ISiloBuilder Configure(ISiloBuilder hostBuilder, string databaseName = null)
         {
             string cosmosDBEndpoint = string.Empty, cosmosDBKey = string.Empty;
             if (databaseName != null)
@@ -39,20 +39,14 @@ namespace Orleans.Indexing.Tests
                            loggingBuilder.SetMinimumLevel(LogLevel.Information);
                            loggingBuilder.AddDebug();
                        })
-                       .ConfigureApplicationParts(parts =>
-                       {
-                           parts.AddApplicationPart(typeof(BaseIndexingFixture).Assembly).WithReferences();
-                       });
+                       ;
             return databaseName != null
-                ? hostBuilder.AddCosmosDBGrainStorage(IndexingTestConstants.CosmosDBGrainStorage, opt =>
+                ? hostBuilder.AddCosmosGrainStorage(IndexingTestConstants.CosmosDBGrainStorage, opt =>
                     {
-                        opt.AccountEndpoint = cosmosDBEndpoint;
-                        opt.AccountKey = cosmosDBKey;
-                        opt.ConnectionMode = Microsoft.Azure.Documents.Client.ConnectionMode.Gateway;
-                        opt.DropDatabaseOnInit = true;
-                        opt.AutoUpdateStoredProcedures = true;
-                        opt.CanCreateResources = true;
-                        opt.DB = databaseName;
+                        opt.ConfigureCosmosClient($"AccountEndpoint={cosmosDBEndpoint};AccountKey={cosmosDBKey}");
+                        opt.CleanResourcesOnInitialization = true;
+                        opt.IsResourceCreationEnabled = true;
+                        opt.DatabaseName = databaseName;
                         opt.InitStage = ServiceLifecycleStage.RuntimeStorageServices;
                         opt.StateFieldsToIndex.AddRange(GetDSMIStateFieldsToIndex());
                     })
@@ -61,15 +55,12 @@ namespace Orleans.Indexing.Tests
 
         internal static IClientBuilder Configure(IClientBuilder clientBuilder)
         {
-            return clientBuilder.ConfigureLogging(loggingBuilder =>
-                                {
-                                    loggingBuilder.SetMinimumLevel(LogLevel.Information);
-                                    loggingBuilder.AddDebug();
-                                })
-                                .ConfigureApplicationParts(parts =>
-                                {
-                                    parts.AddApplicationPart(typeof(BaseIndexingFixture).Assembly);
-                                });
+            //return clientBuilder.ConfigureLogging(loggingBuilder =>
+            //                    {
+            //                        loggingBuilder.SetMinimumLevel(LogLevel.Information);
+            //                        loggingBuilder.AddDebug();
+            //                    });
+            return clientBuilder;
         }
 
         // Code below adapted from ApplicationPartsIndexableGrainLoader to identify the necessary fields for the DSMI storage

@@ -1,19 +1,14 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans.Concurrency;
 using Orleans.Runtime;
 
 namespace Orleans.Indexing.Facet
 {
-    abstract class IndexedStateBase<TGrainState> : IIndexedState<TGrainState> where TGrainState : class, new()
+    internal abstract class IndexedStateBase<TGrainState> : IIndexedState<TGrainState> where TGrainState : class, new()
     {
         private protected readonly IServiceProvider ServiceProvider;
         private protected readonly IIndexedStateConfiguration IndexedStateConfig;
-        private protected readonly IGrainActivationContext grainActivationContext;
+        private protected readonly IGrainContext grainActivationContext;
 
         private protected Grain grain;
         private protected IIndexableGrain iIndexableGrain;
@@ -23,7 +18,7 @@ namespace Orleans.Indexing.Facet
         private protected GrainIndexes _grainIndexes;
         private protected bool _hasAnyUniqueIndex;
 
-        public IndexedStateBase(IServiceProvider sp, IIndexedStateConfiguration config, IGrainActivationContext context)
+        public IndexedStateBase(IServiceProvider sp, IIndexedStateConfiguration config, IGrainContext context)
         {
             this.ServiceProvider = sp;
             this.IndexedStateConfig = config;
@@ -34,7 +29,7 @@ namespace Orleans.Indexing.Facet
         internal SiloIndexManager SiloIndexManager => IndexManager.GetSiloIndexManager(ref this.__siloIndexManager, this.ServiceProvider);
         private SiloIndexManager __siloIndexManager;
 
-        private protected ILogger Logger => this.__logger ?? (this.__logger = this.SiloIndexManager.LoggerFactory.CreateLoggerWithFullCategoryName(this.GetType()));
+        private protected ILogger Logger => this.__logger ??= this.SiloIndexManager.LoggerFactory.CreateLoggerWithFullCategoryName(this.GetType());
         private ILogger __logger;
 
         private protected SiloAddress BaseSiloAddress => this.SiloIndexManager.SiloAddress;
@@ -51,11 +46,11 @@ namespace Orleans.Indexing.Facet
 
         public void Participate<TSubclass>(IGrainLifecycle lifecycle)
         {
-            lifecycle.Subscribe<TSubclass>(GrainLifecycleStage.SetupState, _ => OnSetupStateAsync());
-            lifecycle.Subscribe<TSubclass>(GrainLifecycleStage.Activate, ct => OnActivateAsync(ct), ct => OnDeactivateAsync(ct));
+            lifecycle.Subscribe<TSubclass>(GrainLifecycleStage.SetupState, _ => this.OnSetupStateAsync());
+            lifecycle.Subscribe<TSubclass>(GrainLifecycleStage.Activate, ct => this.OnActivateAsync(ct), ct => this.OnDeactivateAsync(ct));
         }
 
-        private protected Task OnSetupStateAsync() => this.Initialize(this.grainActivationContext.GrainInstance);
+        private protected Task OnSetupStateAsync() => this.Initialize(this.grainActivationContext.GrainInstance as Grain);
 
         internal abstract Task OnActivateAsync(CancellationToken ct);
 

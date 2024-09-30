@@ -1,7 +1,5 @@
 using Orleans.Streams;
-using System;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
 
 namespace Orleans.Indexing
 {

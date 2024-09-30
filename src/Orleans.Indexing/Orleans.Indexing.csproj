@@ -7,31 +7,29 @@
       Library for Orleans Indexing feature
     </Description>
     <PackageTags>$(PackageTags) Indexing</PackageTags>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-
   <PropertyGroup>
     <AssemblyName>Orleans.Indexing</AssemblyName>
     <RootNamespace>Orleans.Indexing</RootNamespace>
     <OrleansBuildTimeCodeGen>true</OrleansBuildTimeCodeGen>
     <LangVersion>latest</LangVersion>
+    <UserSecretsId>ccae921f-d074-44ca-9704-d68ca6f54aad</UserSecretsId>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <NoWarn>;1591</NoWarn>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsAsErrors />
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Microsoft.Orleans.Core" Version="$(OrleansVersion)" />
-    <PackageReference Include="Microsoft.Orleans.OrleansCodeGenerator.Build" Version="$(OrleansVersion)">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Orleans.OrleansProviders" Version="$(OrleansVersion)" />
-    <PackageReference Include="Microsoft.Orleans.OrleansRuntime" Version="$(OrleansVersion)" />
-    <PackageReference Include="Microsoft.Orleans.OrleansProviders" Version="$(OrleansVersion)" />
-    <PackageReference Include="Microsoft.Orleans.Transactions" Version="$(OrleansVersion)" />
+    <PackageReference Include="Microsoft.Orleans.Streaming" />
+    <PackageReference Include="System.Text.Json" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" />
+    <PackageReference Include="Microsoft.Orleans.Serialization" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Orleans.Runtime" />
+    <PackageReference Include="Microsoft.Orleans.Persistence.Memory" />
+    <PackageReference Include="Microsoft.Orleans.Transactions" />
   </ItemGroup>
 </Project>

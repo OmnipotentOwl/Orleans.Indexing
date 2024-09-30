@@ -1,9 +1,6 @@
-using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Orleans.Runtime;
 
 namespace Orleans.Indexing.Facet
@@ -18,10 +15,10 @@ namespace Orleans.Indexing.Facet
         public NonFaultTolerantWorkflowIndexedState(
                 IServiceProvider sp,
                 IIndexedStateConfiguration config,
-                IGrainActivationContext context
+                IGrainContext context
             ) : base(sp, config, context)
         {
-            base.getWorkflowIdFunc = () => Guid.NewGuid();
+            this.getWorkflowIdFunc = Guid.NewGuid;
         }
 
         public void Participate(IGrainLifecycle lifecycle) => base.Participate<NonFaultTolerantWorkflowIndexedState<TGrainState, TWrappedState>>(lifecycle);
@@ -29,9 +26,9 @@ namespace Orleans.Indexing.Facet
         internal override async Task OnActivateAsync(CancellationToken ct)
         {
             Debug.Assert(!(this is FaultTolerantWorkflowIndexedState<TGrainState>));    // Ensure this is overridden
-            base.Logger.Trace($"Activating indexable grain of type {grain.GetType().Name} in silo {this.SiloIndexManager.SiloAddress}.");
-            await base.InitializeState();
-            await base.FinishActivateAsync();
+            this.Logger.Trace($"Activating indexable grain of type {this.grain.GetType().Name} in silo {this.SiloIndexManager.SiloAddress}.");
+            await this.InitializeState();
+            await this.FinishActivateAsync();
         }
 
         /// <summary>
@@ -79,7 +76,7 @@ namespace Orleans.Indexing.Facet
                     {
                         await this.UndoTentativeChangesToUniqueIndexesEagerly(interfaceToUpdatesMap);
                     }
-                    throw ex;
+                    throw;
                 }
             }
 
@@ -93,7 +90,7 @@ namespace Orleans.Indexing.Facet
                 {
                     await Task.WhenAll(new[]
                     {
-                        updateIndexTypes != UpdateIndexType.None ? base.ApplyIndexUpdatesEagerly(interfaceToUpdatesMap, updateIndexTypes, isTentative: false) : null,
+                        updateIndexTypes != UpdateIndexType.None ? this.ApplyIndexUpdatesEagerly(interfaceToUpdatesMap, updateIndexTypes, isTentative: false) : null,
                         writeStateIfConstraintsAreNotViolated ? this.WriteStateAsync() : null
                     }.Coalesce());
                 }
@@ -112,7 +109,7 @@ namespace Orleans.Indexing.Facet
         }
 
         private Task UndoTentativeChangesToUniqueIndexesEagerly(InterfaceToUpdatesMap interfaceToUpdatesMap)
-            => Task.WhenAll(interfaceToUpdatesMap.Select(kvp => base.ApplyIndexUpdatesEagerly(kvp.Key, MemberUpdateReverseTentative.Reverse(kvp.Value),
+            => Task.WhenAll(interfaceToUpdatesMap.Select(kvp => this.ApplyIndexUpdatesEagerly(kvp.Key, MemberUpdateReverseTentative.Reverse(kvp.Value),
                                                                                               UpdateIndexType.Unique, isTentative: false)));
 
         /// <summary>
@@ -123,6 +120,6 @@ namespace Orleans.Indexing.Facet
         /// <param name="updatesByInterface">the dictionary of updates for each index by interface</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ApplyIndexUpdatesLazilyWithoutWait(InterfaceToUpdatesMap updatesByInterface)
-            => base.ApplyIndexUpdatesLazily(updatesByInterface).Ignore();
+            => this.ApplyIndexUpdatesLazily(updatesByInterface).Ignore();
     }
 }
