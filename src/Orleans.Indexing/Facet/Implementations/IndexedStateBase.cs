@@ -47,7 +47,7 @@ namespace Orleans.Indexing.Facet
         public void Participate<TSubclass>(IGrainLifecycle lifecycle)
         {
             lifecycle.Subscribe<TSubclass>(GrainLifecycleStage.SetupState, _ => this.OnSetupStateAsync());
-            lifecycle.Subscribe<TSubclass>(GrainLifecycleStage.Activate, ct => this.OnActivateAsync(ct), ct => this.OnDeactivateAsync(ct));
+            lifecycle.Subscribe<TSubclass>(GrainLifecycleStage.Activate, this.OnActivateAsync, this.OnDeactivateAsync);
         }
 
         private protected Task OnSetupStateAsync() => this.Initialize(this.grainActivationContext.GrainInstance as Grain);
