@@ -6,10 +6,6 @@ using Orleans.Storage;
 
 namespace Orleans.Indexing
 {
-    // The persistent unit for storing the information for an <see cref="IndexWorkflowQueueGrainService"/>
-    // 
-    // This requires GrainState instead of using StateStorageBridge, due to having to set the ETag for upsert.
-    using IndexWorkflowQueueState = GrainState<IndexWorkflowQueueEntry>;
 
     /// <summary>
     /// To minimize the number of RPCs, we process index updates for each grain on the silo where the grain is active. To do this processing, each silo
@@ -31,7 +27,7 @@ namespace Orleans.Indexing
         //the persistent state of IndexWorkflowQueue, including:
         // - doubly linked list of workflowRecordds
         // - the identity of the IndexWorkflowQueue GrainService
-        protected IndexWorkflowQueueState queueState;
+        protected GrainState<IndexWorkflowQueueEntry> queueState;
 
         //the tail of workflowRecords doubly linked list
         internal IndexWorkflowRecordNode _workflowRecordsTail;
@@ -84,7 +80,7 @@ namespace Orleans.Indexing
         internal IndexWorkflowQueueBase(SiloIndexManager siloIndexManager, Type grainInterfaceType, int queueSequenceNumber, SiloAddress silo,
                                         bool isDefinedAsFaultTolerantGrain, Func<GrainReference> parentFunc, GrainReference recoveryGrainReference = null)
         {
-            this.queueState = new IndexWorkflowQueueState();
+            this.queueState = new GrainState<IndexWorkflowQueueEntry>(new IndexWorkflowQueueEntry());
             this._grainInterfaceType = grainInterfaceType;
             this._queueSeqNum = queueSequenceNumber;
             this._grainTypeName = "Orleans.Indexing.IndexWorkflowQueue-" + IndexUtils.GetFullTypeName(this._grainInterfaceType);
