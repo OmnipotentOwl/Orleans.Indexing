@@ -31,7 +31,7 @@ namespace Orleans.Indexing
 
         public Task OnErrorAsync(Exception ex) => this._stream.OnErrorAsync(ex);
 
-        public virtual Task OnNextAsync(TIGrain item, StreamSequenceToken token = null) 
+        public virtual Task OnNextAsync(TIGrain item, StreamSequenceToken token = null)
             => this._stream.OnNextAsync(item, token);
 
         public virtual Task OnNextAsync(IList<SequentialItem<TIGrain>> batch)

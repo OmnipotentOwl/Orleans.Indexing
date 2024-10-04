@@ -36,7 +36,7 @@ namespace Orleans.Indexing.Tests
                        .AddMemoryGrainStorage("PubSubStore") // PubSubStore service is needed for the streams underlying OrleansQueryResults
                        .ConfigureLogging(loggingBuilder =>
                        {
-                           loggingBuilder.SetMinimumLevel(LogLevel.Information);
+                           loggingBuilder.SetMinimumLevel(LogLevel.Trace);
                            loggingBuilder.AddDebug();
                        })
                        ;

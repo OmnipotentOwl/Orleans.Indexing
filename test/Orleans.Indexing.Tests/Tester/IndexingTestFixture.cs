@@ -12,7 +12,7 @@ namespace Orleans.Indexing.Tests
         protected override void ConfigureTestCluster(TestClusterBuilder builder)
         {
             base.ConfigureTestClusterForIndexing(builder);
-            AddSiloBuilderConfigurator(builder);
+            this.AddSiloBuilderConfigurator(builder);
             builder.AddClientBuilderConfigurator<ClientBuilderConfigurator>();
         }
 
