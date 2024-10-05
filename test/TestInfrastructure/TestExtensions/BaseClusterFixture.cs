@@ -30,18 +30,6 @@ namespace TestExtensions
                 this.preconditionsException = ExceptionDispatchInfo.Capture(ex);
                 return;
             }
-
-            var builder = new TestClusterBuilder();
-            TestDefaultConfiguration.ConfigureTestCluster(builder);
-            ConfigureTestCluster(builder);
-
-            var testCluster = builder.Build();
-            if (testCluster?.Primary == null)
-            {
-                testCluster?.Deploy();
-            }
-            this.HostedCluster = testCluster;
-            this.Logger = this.Client?.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Application");
         }
 
         public void EnsurePreconditionsMet()
@@ -55,13 +43,13 @@ namespace TestExtensions
         {
         }
 
-        public TestCluster HostedCluster { get; }
+        public TestCluster HostedCluster { get; private set; }
 
         public IGrainFactory GrainFactory => this.HostedCluster?.GrainFactory;
 
         public IClusterClient Client => this.HostedCluster?.Client;
 
-        public ILogger Logger { get; }
+        public ILogger Logger { get; private set; }
         
         public virtual void Dispose()
         {
@@ -70,17 +58,34 @@ namespace TestExtensions
 
         public string GetClientServiceId() => Client.ServiceProvider.GetRequiredService<IOptions<ClusterOptions>>().Value.ServiceId;
 
-        public Task InitializeAsync()
+        public virtual async Task InitializeAsync()
         {
-            return Task.CompletedTask;
+            this.EnsurePreconditionsMet();
+            var builder = new TestClusterBuilder();
+            TestDefaultConfiguration.ConfigureTestCluster(builder);
+            this.ConfigureTestCluster(builder);
+
+            var testCluster = builder.Build();
+            if (testCluster.Primary == null)
+            {
+                await testCluster.DeployAsync().ConfigureAwait(false);
+            }
+            this.HostedCluster = testCluster;
+            this.Logger = this.Client.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Application");
         }
 
-        public async Task DisposeAsync()
+        public virtual async Task DisposeAsync()
         {
             var cluster = this.HostedCluster;
-            if (cluster != null)
+            if (cluster is null) return;
+
+            try
             {
-                await cluster.StopAllSilosAsync();
+                await cluster.StopAllSilosAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                await cluster.DisposeAsync().ConfigureAwait(false);
             }
         }
     }
